@@ -31,7 +31,7 @@ def send_email(smtp_server, from_address, to_address : tuple, cc_address : tuple
                 send_command(sock, 'DATA\r\n')
                 send_command(sock, f'From: {from_address}\r\n')
                 send_command(sock, f'Subject: {subject}\r\nTo: {",".join(to_address)}\r\nCc: {",".join(cc_address)}\r\nBCC: {address}\r\n\r\n{message}\r\n.\r\n')
-                send_command(sock, 'QUIT\r\n'
+                send_command(sock, 'QUIT\r\n')
 
 if __name__ == "__main__":
     smtp_server = input("Input SMPT: ")
