@@ -33,6 +33,32 @@ def send_email(smtp_server, from_address, to_address : tuple, cc_address : tuple
                 send_command(sock, f'Subject: {subject}\r\nTo: {",".join(to_address)}\r\nCc: {",".join(cc_address)}\r\nBCC: {address}\r\n\r\n{message}\r\n.\r\n')
                 send_command(sock, 'QUIT\r\n')
 
+def connect_to_pop3_server(server_address, port):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.connect((server_address, port))
+    print(sock.recv(1024).decode())
+    return sock
+
+def login(sock, username, password):
+    send_command(sock, f'USER {username}\r\n')
+    send_command(sock, f'PASS {password}\r\n')
+
+def retrieve_email(sock, email_id):
+    return send_command(sock, f'RETR {email_id}\r\n')
+
+def quit(sock):
+    send_command(sock, 'QUIT\r\n')
+    sock.close()
+
+def list_emails(sock):
+    response = send_command(sock, 'UIDL\r\n')
+    lines = response.split('\n')
+    for line in lines[1:]:
+        parts = line.split()
+        if len(parts) == 2:
+            print(f'Email ID: {parts[1]}')
+
+
 if __name__ == "__main__":
     smtp_server = input("Input SMPT: ")
     from_address = input("Input email address: ")
@@ -66,3 +92,14 @@ if __name__ == "__main__":
             subject = input("Subject: ")
             message = input("Message: ")
             send_email(smtp_server, from_address, to_address, cc_address, bcc_address, subject, message)
+        elif choice == '2':
+            pop3_server = smtp_server
+            port = int(input("Input POP3 port: "))
+            username = from_address
+            password = input("Input password: ")
+            sock = connect_to_pop3_server(pop3_server, port)
+            login(sock, username, password)
+            list_emails(sock)
+            email_id = input("Input mail ID: ")
+            print(retrieve_email(sock, email_id))
+            quit(sock)
