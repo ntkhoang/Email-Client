@@ -18,6 +18,7 @@ def send_email(smtp_server, from_address, to_address : tuple, cc_address : tuple
         for address in cc_address:
             send_command(sock, f'RCPT TO: <{address}>\r\n')
         send_command(sock, 'DATA\r\n')
+        send_command(sock, f'From: {from_address}\r\n')
         send_command(sock, f'Subject: {subject}\r\nTo: {",".join(to_address)}\r\nCc: {",".join(cc_address)}\r\n\r\n{message}\r\n.\r\n')
         send_command(sock, 'QUIT\r\n')
         
@@ -28,13 +29,40 @@ def send_email(smtp_server, from_address, to_address : tuple, cc_address : tuple
                 send_command(sock, f'MAIL FROM: <{from_address}>\r\n')
                 send_command(sock, f'RCPT TO: <{address}>\r\n')
                 send_command(sock, 'DATA\r\n')
+                send_command(sock, f'From: {from_address}\r\n')
                 send_command(sock, f'Subject: {subject}\r\nTo: {",".join(to_address)}\r\nCc: {",".join(cc_address)}\r\nBCC: {address}\r\n\r\n{message}\r\n.\r\n')
-                send_command(sock, 'QUIT\r\n')
+                send_command(sock, 'QUIT\r\n'
 
 if __name__ == "__main__":
-    smtp_server = input("Nhập địa chỉ máy chủ SMTP: ")
-    from_address = input("Nhập địa chỉ email người gửi: ")
-    to_address = input("Nhập địa chỉ email người nhận: ")
-    subject = input("Nhập tiêu đề email: ")
-    message = input("Nhập nội dung email: ")
-    send_email(smtp_server, from_address, to_address, subject, message)
+    smtp_server = input("Input SMPT: ")
+    from_address = input("Input email address: ")
+    while True:
+        print("1. Send email")
+        print("2. View email from server")
+        print("3. Exit")
+        choice = input("Input choice: ")
+        if choice == '1':
+            print("To: ")
+            to_address = []
+            while True:
+                email = input()
+                if email == 'end':
+                    break
+                to_address.append(email)
+            print("CC: ")
+            cc_address = []
+            while True:
+                email = input()
+                if email == 'end':
+                    break
+                cc_address.append(email)
+            print("BCC: ")
+            bcc_address = []
+            while True:
+                email = input()
+                if email == 'end':
+                    break
+                bcc_address.append(email)
+            subject = input("Subject: ")
+            message = input("Message: ")
+            send_email(smtp_server, from_address, to_address, cc_address, bcc_address, subject, message)
