@@ -1,4 +1,5 @@
 import socket
+import json
 
 def send_command(sock, command):
     try:
@@ -10,9 +11,9 @@ def send_command(sock, command):
         print(f"An error occurred: {e}")
         return ""
     
-def send_email(smtp_server, from_address, to_address : tuple, cc_address : tuple, bcc_address : tuple, subject, message):
+def send_email(smtp_server,smtp_port, from_address, to_address : tuple, cc_address : tuple, bcc_address : tuple, subject, message):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        sock.connect((smtp_server, 2225))
+        sock.connect((smtp_server, smtp_port))
         send_command(sock, 'EHLO client\r\n')
         send_command(sock, f'MAIL FROM: <{from_address}>\r\n')
         for address in to_address:
@@ -62,7 +63,8 @@ def list_emails(sock):
 
 
 if __name__ == "__main__":
-    smtp_server = input("Input SMPT: ")
+    smtp_server = input("Input Mail Sever: ")
+    smtp_port = int(input("Input SMTP port: "))
     from_address = input("Input email address: ")
     while True:
         print("1. Send email")
@@ -93,7 +95,7 @@ if __name__ == "__main__":
                 bcc_address.append(email)
             subject = input("Subject: ")
             message = input("Message: ")
-            send_email(smtp_server, from_address, to_address, cc_address, bcc_address, subject, message)
+            send_email(smtp_server,smtp_port, from_address, to_address, cc_address, bcc_address, subject, message)
         elif choice == '2':
             pop3_server = smtp_server
             port = int(input("Input POP3 port: "))
