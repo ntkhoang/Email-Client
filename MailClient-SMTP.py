@@ -72,10 +72,9 @@ def list_emails(sock):
             email = retrieve_email(sock, email_id)
             from_line = next((line for line in email.split('\n') if line.lower().startswith('from: ')), None)
             subject_line = next((line for line in email.split('\n') if line.lower().startswith('subject: ')), None)
-            if from_line and subject_line:
-                from_info = from_line.split(":")[1].strip()
-                subject_info = subject_line.split(":")[1].strip()
-                print(f'{email_id} From: {from_info}, Subject:{subject_info}')
+            from_info = from_line.split(":")[1].strip() if from_line else 'None'
+            subject_info = subject_line.split(":")[1].strip() if subject_line else 'None'
+            print(f'{email_id} From: {from_info}, Subject: {subject_info}')
 
 
 if __name__ == "__main__":
