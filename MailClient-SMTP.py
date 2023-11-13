@@ -66,6 +66,20 @@ def quit(sock):
     sock.close()
 
 def list_emails(sock):
+    # Load filters from config file
+    with open('config.json', 'r') as f:
+        config = json.load(f)
+    filters = config['filters']
+
+    # Create a dictionary to store emails by folder
+    folders = {
+        'Inbox': [],
+        'Project': [],
+        'Important': [],
+        'Work': [],
+        'Spam': []
+    }
+
     response = send_command(sock, 'LIST\r\n')
     lines = response.split('\n')
     for line in lines[1:]:
@@ -77,7 +91,35 @@ def list_emails(sock):
             subject_line = next((line for line in email.split('\n') if line.lower().startswith('subject: ')), None)
             from_info = from_line.split(":")[1].strip() if from_line else 'None'
             subject_info = subject_line.split(":")[1].strip() if subject_line else 'None'
-            print(f'{email_id} From: {from_info}, Subject: {subject_info}')
+
+            # Apply filters
+            folder = 'Inbox'
+            for filter in filters:
+                if filter['type'] == 'from' and from_info in filter['keywords']:
+                    folder = filter['folder']
+                elif filter['type'] == 'subject' and subject_info in filter['keywords']:
+                    folder = filter['folder']
+                elif filter['type'] == 'content' and any(keyword in email for keyword in filter['keywords']):
+                    folder = filter['folder']
+                elif filter['type'] == 'spam' and any(keyword in email for keyword in filter['keywords']):
+                    folder = filter['folder']
+
+            # Add email to folder
+            folders[folder].append(f'{email_id} From: {from_info}, Subject: {subject_info}')
+
+    # Print folders
+    print('List folder in your mail box:')
+    for i, folder in enumerate(folders.keys(), start=1):
+        print(f'{i}. {folder}')
+
+    # Get user choice
+    choice = input('Your choice: ')
+    chosen_folder = list(folders.keys())[int(choice) - 1]
+
+    # Print emails in chosen folder
+    for email in folders[chosen_folder]:
+        print(email)
+
 
 
 if __name__ == "__main__":
@@ -124,7 +166,7 @@ if __name__ == "__main__":
             login(sock, username, password)
             list_emails(sock)
             email_id = input("Input mail ID: ")
-            retrieve_email(sock, email_id)
+            retrieve_email_with_print(sock, email_id)
             quit(sock)
         elif choice == '3':
             break
