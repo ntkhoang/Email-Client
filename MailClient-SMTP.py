@@ -63,12 +63,19 @@ def quit(sock):
     sock.close()
 
 def list_emails(sock):
-    response = send_command(sock, 'UIDL\r\n')
+    response = send_command(sock, 'LIST\r\n')
     lines = response.split('\n')
     for line in lines[1:]:
         parts = line.split()
         if len(parts) == 2:
-            print(f'Email ID: {parts[0]} - {parts[1]}')
+            email_id = parts[0]
+            email = retrieve_email(sock, email_id)
+            from_line = next((line for line in email.split('\n') if line.lower().startswith('from: ')), None)
+            subject_line = next((line for line in email.split('\n') if line.lower().startswith('subject: ')), None)
+            if from_line and subject_line:
+                from_info = from_line.split(":")[1].strip()
+                subject_info = subject_line.split(":")[1].strip()
+                print(f'{email_id} From: {from_info}, Subject:{subject_info}')
 
 
 if __name__ == "__main__":
