@@ -55,8 +55,11 @@ def login(sock, username, password):
     send_command(sock, f'USER {username}\r\n')
     send_command(sock, f'PASS {password}\r\n')
 
-def retrieve_email(sock, email_id):
+def retrieve_email_with_print(sock, email_id):
     return send_command_with_print(sock, f'RETR {email_id}\r\n')
+
+def retrieve_email(sock, email_id):
+    return send_command(sock, f'RETR {email_id}\r\n')
 
 def quit(sock):
     send_command(sock, 'QUIT\r\n')
