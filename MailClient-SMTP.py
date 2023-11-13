@@ -21,7 +21,7 @@ def send_email(smtp_server, from_address, to_address : tuple, cc_address : tuple
         send_command(sock, f'From: {from_address}\r\n')
         send_command(sock, f'Subject: {subject}\r\nTo: {",".join(to_address)}\r\nCc: {",".join(cc_address)}\r\n\r\n{message}\r\n.\r\n')
         send_command(sock, 'QUIT\r\n')
-        
+
         for address in bcc_address:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
                 sock.connect((smtp_server, 2225))
