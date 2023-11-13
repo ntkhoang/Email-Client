@@ -1,4 +1,24 @@
 {
-    "Work": ["meeting", "project", "deadline"],
-    "Personal": ["party", "dinner", "movie"]
+    "filters": [
+        {
+            "type": "from",
+            "keywords": ["ahihi@testing.com", "ahuu@testing.com"],
+            "folder": "Project"
+        },
+        {
+            "type": "subject",
+            "keywords": ["urgent", "ASAP"],
+            "folder": "Important"
+        },
+        {
+            "type": "content",
+            "keywords": ["report", "meeting"],
+            "folder": "Work"
+        },
+        {
+            "type": "spam",
+            "keywords": ["virus", "hack", "crack"],
+            "folder": "Spam"
+        }
+    ]
 }

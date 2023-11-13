@@ -5,6 +5,15 @@ def send_command(sock, command):
     try:
         sock.send(command.encode())
         response = sock.recv(1024).decode()
+        return response
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return ""
+
+def send_command_with_print(sock, command):
+    try:
+        sock.send(command.encode())
+        response = sock.recv(1024).decode()
         print(response)
         return response
     except Exception as e:
@@ -27,7 +36,7 @@ def send_email(smtp_server,smtp_port, from_address, to_address : tuple, cc_addre
 
         for address in bcc_address:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-                sock.connect((smtp_server, 2225))
+                sock.connect((smtp_server, smtp_port))
                 send_command(sock, 'EHLO client\r\n')
                 send_command(sock, f'MAIL FROM: <{from_address}>\r\n')
                 send_command(sock, f'RCPT TO: <{address}>\r\n')
@@ -47,7 +56,7 @@ def login(sock, username, password):
     send_command(sock, f'PASS {password}\r\n')
 
 def retrieve_email(sock, email_id):
-    return send_command(sock, f'RETR {email_id}\r\n')
+    return send_command_with_print(sock, f'RETR {email_id}\r\n')
 
 def quit(sock):
     send_command(sock, 'QUIT\r\n')
@@ -96,6 +105,7 @@ if __name__ == "__main__":
             subject = input("Subject: ")
             message = input("Message: ")
             send_email(smtp_server,smtp_port, from_address, to_address, cc_address, bcc_address, subject, message)
+            print("Send success")
         elif choice == '2':
             pop3_server = smtp_server
             port = int(input("Input POP3 port: "))
@@ -107,3 +117,5 @@ if __name__ == "__main__":
             email_id = input("Input mail ID: ")
             retrieve_email(sock, email_id)
             quit(sock)
+        elif choice == '3':
+            break
