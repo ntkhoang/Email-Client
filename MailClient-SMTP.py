@@ -1,12 +1,14 @@
 import socket
 
 def send_command(sock, command):
-    sock.sendall(command.encode())
-    response = sock.recv(1024)
-    if not response:
-        print("No response from server. The connection may have been closed.")
-        return
-    print(response.decode())
+    try:
+        sock.send(command.encode())
+        response = sock.recv(1024).decode()
+        print(response)
+        return response
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return ""
     
 def send_email(smtp_server, from_address, to_address : tuple, cc_address : tuple, bcc_address : tuple, subject, message):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
@@ -56,7 +58,7 @@ def list_emails(sock):
     for line in lines[1:]:
         parts = line.split()
         if len(parts) == 2:
-            print(f'Email ID: {parts[1]}')
+            print(f'Email ID: {parts[0]} - {parts[1]}')
 
 
 if __name__ == "__main__":
@@ -101,5 +103,5 @@ if __name__ == "__main__":
             login(sock, username, password)
             list_emails(sock)
             email_id = input("Input mail ID: ")
-            print(retrieve_email(sock, email_id))
+            retrieve_email(sock, email_id)
             quit(sock)
