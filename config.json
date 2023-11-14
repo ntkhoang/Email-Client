@@ -1,5 +1,6 @@
 {
-    "general": {
+    "general": 
+    {
         "username": "789",
         "password": "ahihi",
         "mailServer": "127.0.0.1",
@@ -10,7 +11,7 @@
     "filters": [
         {
             "type": "from",
-            "keywords": ["ahihi@testing.com", "ahuu@testing.com"],
+            "keywords": ["ahihi@testing.com", "ahuu@testing.com", "@testing.com"],
             "folder": "Project"
         },
         {
@@ -28,5 +29,6 @@
             "keywords": ["virus", "hack", "crack"],
             "folder": "Spam"
         }
+        
     ]
 }
