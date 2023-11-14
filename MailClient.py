@@ -90,13 +90,8 @@ def list_emails(sock, user):
     filters = config['filters']
 
     # Create a dictionary to store emails by folder
-    folders = {
-        'Inbox': [],
-        'Project': [],
-        'Important': [],
-        'Work': [],
-        'Spam': []
-    }
+    folders = {filter['folder']: [] for filter in filters}
+    folders['Inbox'] = []
 
     response = send_command(sock, 'LIST\r\n')
     lines = response.split('\n')
@@ -111,7 +106,7 @@ def list_emails(sock, user):
             subject_info = subject_line.split(":")[1].strip() if subject_line else 'None'
 
             # Apply filters
-            folder = 'Inbox'
+            folder = 'Inbox' 
             for filter in filters:
                 if filter['type'] == 'from' and from_info in filter['keywords']:
                     folder = filter['folder']
