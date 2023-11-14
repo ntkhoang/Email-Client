@@ -1,5 +1,6 @@
 import socket
 import json
+import os
 
 def send_command(sock, command):
     try:
@@ -65,7 +66,24 @@ def quit(sock):
     send_command(sock, 'QUIT\r\n')
     sock.close()
 
-def list_emails(sock):
+def save_seen_email(user, email_id):
+    # Kiểm tra xem thư mục 'User' có tồn tại không, nếu không thì tạo mới
+    if not os.path.exists('User'):
+        os.makedirs('User')
+    # Lưu email đã xem vào tệp trong thư mục 'User'
+    with open(f'User/{user}.txt', 'a') as f:
+        f.write(f'{email_id}\n')
+
+def check_seen_email(user, email_id):
+    # Kiểm tra xem tệp có tồn tại không
+    if not os.path.exists(f'User/{user}.txt'):
+        return False
+    # Đọc tệp để kiểm tra email đã xem
+    with open(f'User/{user}.txt', 'r') as f:
+        seen_emails = f.read().splitlines()
+    return email_id in seen_emails
+
+def list_emails(sock, user):
     # Load filters from config file
     with open('config.json', 'r') as f:
         config = json.load(f)
@@ -104,8 +122,12 @@ def list_emails(sock):
                 elif filter['type'] == 'spam' and any(keyword in email for keyword in filter['keywords']):
                     folder = filter['folder']
 
+            # Check if email has been seen
+            seen = check_seen_email(user, email_id)
+            seen_status = '' if seen else '(unseen)'
+
             # Add email to folder
-            folders[folder].append(f'{email_id} From: {from_info}, Subject: {subject_info}')
+            folders[folder].append(f'{email_id} {seen_status} From: {from_info}, Subject: {subject_info}')
 
     # Print folders
     print('List folder in your mail box:')
@@ -121,6 +143,10 @@ def list_emails(sock):
         if folders[chosen_folder]:
             for email in folders[chosen_folder]:
                 print(email)
+                # If email is unseen, mark it as seen
+                email_id = email.split()[0]
+                if not check_seen_email(user, email_id):
+                    save_seen_email(user, email_id)
             break
         else:
             print('No emails in this folder. Please choose another.')
@@ -171,7 +197,7 @@ if __name__ == "__main__":
         elif choice == '2':
             sock = connect_to_pop3_server(mail_server, pop3)
             login(sock, username, password)
-            list_emails(sock)
+            list_emails(sock, username)
             email_id = input("Input mail ID: ")
             retrieve_email_with_print(sock, email_id)
             quit(sock)
