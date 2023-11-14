@@ -128,9 +128,15 @@ def list_emails(sock):
 
 
 if __name__ == "__main__":
-    smtp_server = input("Input Mail Sever: ")
-    smtp_port = int(input("Input SMTP port: "))
-    from_address = input("Input email address: ")
+    with open('config.json', 'r') as f:
+        config = json.load(f)
+    general = config['general']
+    username = general['username']
+    password = general['password']
+    mail_server = general['mailServer']
+    smtp = general['smtp']
+    pop3 = general['pop3']
+    autoload = general['autoload']
     while True:
         print("1. Send email")
         print("2. View email from server")
@@ -160,14 +166,10 @@ if __name__ == "__main__":
                 bcc_address.append(email)
             subject = input("Subject: ")
             message = input("Message: ")
-            send_email(smtp_server,smtp_port, from_address, to_address, cc_address, bcc_address, subject, message)
+            send_email(mail_server,smtp, username, to_address, cc_address, bcc_address, subject, message)
             print("Send success")
         elif choice == '2':
-            pop3_server = smtp_server
-            port = int(input("Input POP3 port: "))
-            username = from_address
-            password = input("Input password: ")
-            sock = connect_to_pop3_server(pop3_server, port)
+            sock = connect_to_pop3_server(mail_server, pop3)
             login(sock, username, password)
             list_emails(sock)
             email_id = input("Input mail ID: ")

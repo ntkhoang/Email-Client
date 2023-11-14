@@ -1,4 +1,12 @@
 {
+    "general": {
+        "username": "789",
+        "password": "ahihi",
+        "mailServer": "127.0.0.1",
+        "smtp": 2225,
+        "pop3": 3335,
+        "autoload": 10
+    },
     "filters": [
         {
             "type": "from",
