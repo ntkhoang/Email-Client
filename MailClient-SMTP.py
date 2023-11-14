@@ -143,10 +143,7 @@ def list_emails(sock, user):
         if folders[chosen_folder]:
             for email in folders[chosen_folder]:
                 print(email)
-                # If email is unseen, mark it as seen
                 email_id = email.split()[0]
-                if not check_seen_email(user, email_id):
-                    save_seen_email(user, email_id)
             break
         else:
             print('No emails in this folder. Please choose another.')
@@ -200,6 +197,7 @@ if __name__ == "__main__":
             list_emails(sock, username)
             email_id = input("Input mail ID: ")
             retrieve_email_with_print(sock, email_id)
+            save_seen_email(username, email_id)
             quit(sock)
         elif choice == '3':
             break
