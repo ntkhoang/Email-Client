@@ -112,13 +112,18 @@ def list_emails(sock):
     for i, folder in enumerate(folders.keys(), start=1):
         print(f'{i}. {folder}')
 
-    # Get user choice
-    choice = input('Your choice: ')
-    chosen_folder = list(folders.keys())[int(choice) - 1]
+    while True:
+        # Get user choice
+        choice = input('Your choice: ')
+        chosen_folder = list(folders.keys())[int(choice) - 1]
 
-    # Print emails in chosen folder
-    for email in folders[chosen_folder]:
-        print(email)
+        # Print emails in chosen folder or allow to choose again
+        if folders[chosen_folder]:
+            for email in folders[chosen_folder]:
+                print(email)
+            break
+        else:
+            print('No emails in this folder. Please choose another.')
 
 
 
