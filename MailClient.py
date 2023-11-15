@@ -281,7 +281,7 @@ if __name__ == "__main__":
             list_emails(sock, username)
             email_id = input("Input mail ID: ")
             retrieve_email_with_print(sock, email_id)
-            if not check_seen_email(username, email_id) and not retrieve_email(sock, email_id):
+            if not check_seen_email(username, email_id) and not '-ERR Invalid message number' in retrieve_email(sock, email_id):
                 save_seen_email(username, email_id)
             quit(sock)
         elif choice == '3':
