@@ -1,0 +1,186 @@
+import socket
+import base64
+import mimetypes
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
+
+def send_command(sock, command):
+    try:
+        sock.send(command.encode())
+        response = sock.recv(1024).decode()
+        return response
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return ""
+
+def send_command_with_print(sock, command):
+    try:
+        sock.send(command.encode())
+        response = sock.recv(1024).decode()
+        print(response)
+        return response
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return ""
+    
+def send_email(smtp_server,smtp_port, from_address, to_address : tuple, cc_address : tuple, bcc_address : tuple, subject, message):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.connect((smtp_server, smtp_port))
+        send_command(sock, 'EHLO client\r\n')
+        send_command(sock, f'MAIL FROM: <{from_address}>\r\n')
+        for address in to_address:
+            send_command(sock, f'RCPT TO: <{address}>\r\n')
+        for address in cc_address:
+            send_command(sock, f'RCPT TO: <{address}>\r\n')
+        send_command(sock, 'DATA\r\n')
+        send_command(sock, f'From: {from_address}\r\n')
+        send_command(sock, f'Subject: {subject}\r\nTo: {",".join(to_address)}\r\nCc: {",".join(cc_address)}\r\n\r\n{message}\r\n.\r\n')
+        send_command(sock, 'QUIT\r\n')
+
+        for address in bcc_address:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                sock.connect((smtp_server, smtp_port))
+                send_command(sock, 'EHLO client\r\n')
+                send_command(sock, f'MAIL FROM: <{from_address}>\r\n')
+                send_command(sock, f'RCPT TO: <{address}>\r\n')
+                send_command(sock, 'DATA\r\n')
+                send_command(sock, f'From: {from_address}\r\n')
+                send_command(sock, f'Subject: {subject}\r\nTo: {",".join(to_address)}\r\nCc: {",".join(cc_address)}\r\nBCC: {address}\r\n\r\n{message}\r\n.\r\n')
+                send_command(sock, 'QUIT\r\n')
+
+def send_email_with_txt(smtp_server, smtp_port, from_address, to_address : tuple, cc_address : tuple, bcc_address : tuple, subject, message, attachment_file_name):
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.connect((smtp_server, smtp_port))
+
+            send_command_with_print(sock, 'EHLO example.com\r\n')
+            send_command_with_print(sock, f'MAIL FROM: <{from_address}>\r\n')
+
+            for address in to_address:
+                send_command_with_print(sock, f'RCPT TO: <{address}>\r\n')
+            for address in cc_address:
+                send_command_with_print(sock, f'RCPT TO: <{address}>\r\n')
+
+            send_command_with_print(sock, 'DATA\r\n')
+
+            # Compose the email message with attachment
+            email_message = f"From: {from_address}\r\nTo: {', '.join(to_address)}\r\n"
+            email_message += f"Cc: {', '.join(cc_address)}\r\n"
+            email_message += f"Subject: {subject}\r\n\""
+            email_message += f"MIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=boundary123\r\n\r\n"
+            email_message += "--boundary123\r\nContent-Type: text/plain\r\n\r\n"
+            email_message += f"{message}\r\n\r\n"
+            email_message += f"--boundary123\r\nContent-Type: application/octet-stream\r\nContent-Disposition: attachment; filename={attachment_file_name}\r\n\r\n"
+
+            with open(attachment_file_name, 'rb') as attachment:
+                email_message += base64.b64encode(attachment.read()).decode()
+
+            email_message += "\r\n--boundary123--\r\n.\r\n"
+
+            # Send the email message
+            send_command_with_print(sock, email_message)
+            
+            for address in bcc_address:
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                    sock.connect((smtp_server, smtp_port))
+                    send_command_with_print(sock, 'EHLO example.com\r\n')
+                    send_command_with_print(sock, f'MAIL FROM: <{from_address}>\r\n')
+                    send_command_with_print(sock, f'RCPT TO: <{address}>\r\n')
+                    send_command_with_print(sock, 'DATA\r\n')
+                    email_message = f"From: {from_address}\r\nTo: {', '.join(to_address)}\r\n"
+                    email_message += f"Cc: {', '.join(cc_address)}\r\n"
+                    email_message += f"Bcc: {address}\r\n"
+                    email_message += f"Subject: {subject}\r\n\r\n{message}\r\n"
+                    email_message += f"MIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=boundary123\r\n\r\n"
+                    email_message += "--boundary123\r\nContent-Type: text/plain\r\n\r\nThis is the body of the email.\r\n\r\n"
+                    email_message += f"--boundary123\r\nContent-Type: application/octet-stream\r\nContent-Disposition: attachment; filename={attachment_file_name}\r\n\r\n"
+
+                    with open(attachment_file_name, 'rb') as attachment:
+                        email_message += base64.b64encode(attachment.read()).decode()
+
+                    email_message += "\r\n--boundary123--\r\n.\r\n"
+
+                    # Send the email message
+                    send_command_with_print(sock, email_message)
+
+
+    except Exception as e:
+        print(f"An error occurred while sending the email: {e}")
+
+def send_email_with_attachment(smtp_server, smtp_port, from_address, to_address: tuple, cc_address: tuple, bcc_address: tuple, subject, message, attachment_file_name):
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.connect((smtp_server, smtp_port))
+
+            send_command_with_print(sock, 'EHLO example.com\r\n')
+            send_command_with_print(sock, f'MAIL FROM: <{from_address}>\r\n')
+
+            for address in to_address:
+                send_command_with_print(sock, f'RCPT TO: <{address}>\r\n')
+            for address in cc_address:
+                send_command_with_print(sock, f'RCPT TO: <{address}>\r\n')
+
+            send_command_with_print(sock, 'DATA\r\n')
+
+            # Compose the email message with attachment
+            msg = MIMEMultipart()
+            msg['From'] = from_address
+            msg['To'] = ', '.join(to_address)
+            msg['Cc'] = ', '.join(cc_address)
+            msg['Subject'] = subject
+
+            # Attach the message body
+            msg.attach(MIMEText(message, 'plain'))
+
+            # Attach the file
+            with open(attachment_file_name, 'rb') as attachment:
+                part = MIMEBase('application', 'octet-stream')
+                part.set_payload(attachment.read())
+                encoders.encode_base64(part)
+                part.add_header('Content-Disposition', f'attachment; filename={attachment_file_name}')
+                msg.attach(part)
+
+            # Convert the message to a string
+            email_message = msg.as_string()
+
+            # Send the email message
+            send_command_with_print(sock, email_message)
+
+            email_message += "\r\n--boundary123--\r\n.\r\n"
+
+            # Send the email message
+            send_command_with_print(sock, email_message)
+
+            for address in bcc_address:
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                    sock.connect((smtp_server, smtp_port))
+                    send_command_with_print(sock, 'EHLO example.com\r\n')
+                    send_command_with_print(sock, f'MAIL FROM: <{from_address}>\r\n')
+                    send_command_with_print(sock, f'RCPT TO: <{address}>\r\n')
+                    send_command_with_print(sock, 'DATA\r\n')
+
+                    # Convert the message to a string
+                    email_message = msg.as_string()
+
+                    email_message += "\r\n--boundary123--\r\n.\r\n"
+
+                    # Send the email message
+                    send_command_with_print(sock, email_message)
+
+    except Exception as e:
+        print(f"An error occurred while sending the email: {e}")
+
+
+# Example usage:
+smtp_server = '127.0.0.1'
+smtp_port = 2225  # Update with the appropriate port
+from_address = 'your_email@example.com'
+to_address = ('recipient@example.com',)
+cc_address = ('cc_recipient@example.com',)
+bcc_address = ('bcc_recipient@example.com',)
+subject = 'Subject of the email'
+message = 'Body of the email'
+attachment_file_name = 'pinterest.jpeg'  # or 'your_image.jpeg'
+send_email_with_attachment(smtp_server, smtp_port, from_address, to_address, cc_address, bcc_address, subject, message, attachment_file_name)
