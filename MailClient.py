@@ -271,7 +271,7 @@ if __name__ == "__main__":
             choice = input("Input choice: ")
             if choice == 'y':
                 attachment_file_name = input("Input file name: ")
-                send_email_with_text_file(mail_server,smtp, username, to_address, cc_address, bcc_address, subject, message, attachment_file_name)
+                send_email_with_attachment(mail_server,smtp, username, to_address, cc_address, bcc_address, subject, message, attachment_file_name)
             else:
                 send_email(mail_server,smtp, username, to_address, cc_address, bcc_address, subject, message)
             print("Send success")
