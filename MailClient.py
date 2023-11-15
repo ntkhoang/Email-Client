@@ -47,7 +47,7 @@ def send_email(smtp_server,smtp_port, from_address, to_address : tuple, cc_addre
                 send_command(sock, f'Subject: {subject}\r\nTo: {",".join(to_address)}\r\nCc: {",".join(cc_address)}\r\nBCC: {address}\r\n\r\n{message}\r\n.\r\n')
                 send_command(sock, 'QUIT\r\n')
 
-def send_email_with_txt(smtp_server, smtp_port, from_address, to_address : tuple, cc_address : tuple, bcc_address : tuple, subject, message, attachment_file_name):
+def send_email_with_text_file(smtp_server, smtp_port, from_address, to_address : tuple, cc_address : tuple, bcc_address : tuple, subject, message, attachment_file_name):
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             sock.connect((smtp_server, smtp_port))
@@ -245,7 +245,7 @@ if __name__ == "__main__":
             choice = input("Input choice: ")
             if choice == 'y':
                 attachment_file_name = input("Input file name: ")
-                send_email_with_txt(mail_server,smtp, username, to_address, cc_address, bcc_address, subject, message, attachment_file_name)
+                send_email_with_text_file(mail_server,smtp, username, to_address, cc_address, bcc_address, subject, message, attachment_file_name)
             else:
                 send_email(mail_server,smtp, username, to_address, cc_address, bcc_address, subject, message)
             print("Send success")
