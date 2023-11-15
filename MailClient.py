@@ -1,6 +1,7 @@
 import socket
 import json
 import os
+import base64
 
 def send_command(sock, command):
     try:
@@ -46,6 +47,64 @@ def send_email(smtp_server,smtp_port, from_address, to_address : tuple, cc_addre
                 send_command(sock, f'Subject: {subject}\r\nTo: {",".join(to_address)}\r\nCc: {",".join(cc_address)}\r\nBCC: {address}\r\n\r\n{message}\r\n.\r\n')
                 send_command(sock, 'QUIT\r\n')
 
+def send_email_with_txt(smtp_server, smtp_port, from_address, to_address : tuple, cc_address : tuple, bcc_address : tuple, subject, message, attachment_file_name):
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.connect((smtp_server, smtp_port))
+
+            send_command_with_print(sock, 'EHLO example.com\r\n')
+            send_command_with_print(sock, f'MAIL FROM: <{from_address}>\r\n')
+
+            for address in to_address:
+                send_command_with_print(sock, f'RCPT TO: <{address}>\r\n')
+            for address in cc_address:
+                send_command_with_print(sock, f'RCPT TO: <{address}>\r\n')
+
+            send_command_with_print(sock, 'DATA\r\n')
+
+            # Compose the email message with attachment
+            email_message = f"From: {from_address}\r\nTo: {', '.join(to_address)}\r\n"
+            email_message += f"Cc: {', '.join(cc_address)}\r\n"
+            email_message += f"Subject: {subject}\r\n\""
+            email_message += f"MIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=boundary123\r\n\r\n"
+            email_message += "--boundary123\r\nContent-Type: text/plain\r\n\r\n"
+            email_message += f"{message}\r\n\r\n"
+            email_message += f"--boundary123\r\nContent-Type: application/octet-stream\r\nContent-Disposition: attachment; filename={attachment_file_name}\r\n\r\n"
+
+            with open(attachment_file_name, 'rb') as attachment:
+                email_message += base64.b64encode(attachment.read()).decode()
+
+            email_message += "\r\n--boundary123--\r\n.\r\n"
+
+            # Send the email message
+            send_command_with_print(sock, email_message)
+            
+            for address in bcc_address:
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                    sock.connect((smtp_server, smtp_port))
+                    send_command_with_print(sock, 'EHLO example.com\r\n')
+                    send_command_with_print(sock, f'MAIL FROM: <{from_address}>\r\n')
+                    send_command_with_print(sock, f'RCPT TO: <{address}>\r\n')
+                    send_command_with_print(sock, 'DATA\r\n')
+                    email_message = f"From: {from_address}\r\nTo: {', '.join(to_address)}\r\n"
+                    email_message += f"Cc: {', '.join(cc_address)}\r\n"
+                    email_message += f"Bcc: {address}\r\n"
+                    email_message += f"Subject: {subject}\r\n\r\n{message}\r\n"
+                    email_message += f"MIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=boundary123\r\n\r\n"
+                    email_message += "--boundary123\r\nContent-Type: text/plain\r\n\r\nThis is the body of the email.\r\n\r\n"
+                    email_message += f"--boundary123\r\nContent-Type: application/octet-stream\r\nContent-Disposition: attachment; filename={attachment_file_name}\r\n\r\n"
+
+                    with open(attachment_file_name, 'rb') as attachment:
+                        email_message += base64.b64encode(attachment.read()).decode()
+
+                    email_message += "\r\n--boundary123--\r\n.\r\n"
+
+                    # Send the email message
+                    send_command_with_print(sock, email_message)
+
+    except Exception as e:
+        print(f"An error occurred while sending the email: {e}")
+        
 def connect_to_pop3_server(server_address, port):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((server_address, port))
@@ -143,8 +202,6 @@ def list_emails(sock, user):
         else:
             print('No emails in this folder. Please choose another.')
 
-
-
 if __name__ == "__main__":
     with open('config.json', 'r') as f:
         config = json.load(f)
@@ -184,7 +241,13 @@ if __name__ == "__main__":
                 bcc_address.append(email)
             subject = input("Subject: ")
             message = input("Message: ")
-            send_email(mail_server,smtp, username, to_address, cc_address, bcc_address, subject, message)
+            print("Do you want  to attach a file? (y/n)")
+            choice = input("Input choice: ")
+            if choice == 'y':
+                attachment_file_name = input("Input file name: ")
+                send_email_with_txt(mail_server,smtp, username, to_address, cc_address, bcc_address, subject, message, attachment_file_name)
+            else:
+                send_email(mail_server,smtp, username, to_address, cc_address, bcc_address, subject, message)
             print("Send success")
         elif choice == '2':
             sock = connect_to_pop3_server(mail_server, pop3)
