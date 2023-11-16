@@ -36,95 +36,32 @@ def send_email(smtp_server,smtp_port, from_address, to_address : tuple, cc_addre
         sock.connect((smtp_server, smtp_port))
         send_command(sock, 'EHLO client\r\n')
         send_command(sock, f'MAIL FROM: <{from_address}>\r\n')
+        
         for address in to_address:
             send_command(sock, f'RCPT TO: <{address}>\r\n')
         for address in cc_address:
             send_command(sock, f'RCPT TO: <{address}>\r\n')
+        for address in bcc_address:
+            send_command(sock, f'RCPT TO: <{address}>\r\n')
+            
         send_command(sock, 'DATA\r\n')
+        if '@' in from_address:
+            mail_dns = from_address.split('@')
+            send_command_not_response(sock, f'Message-ID: <{uuid.uuid4()}@{mail_dns[1]}>\r\n')
+        else:
+            send_command_not_response(sock, f'Message-ID: <{uuid.uuid4()}>\r\n')
         send_command_not_response(sock, f'Date: {current_time}\r\n')
+        send_command_not_response(sock, 'MIME-Version: 1.0\r\n')
+        send_command_not_response(sock, 'User-Agent: MailClient\r\n')
+        send_command_not_response(sock, f'To: {",".join(to_address)}\r\nCC: {",".join(cc_address)}\r\n')
         send_command_not_response(sock, f'From: {from_address}\r\n')
-        send_command_not_response(sock, f'Subject: {subject}\r\nTo: {",".join(to_address)}\r\nCc: {",".join(cc_address)}\r\n\r\n{message}\r\n.\r\n')
+        send_command_not_response(sock, f'Subject: {subject}\r\n')
+        send_command_not_response(sock, f'Content-Type: text/plain; charset={"utf-8" if any(ord(c) > 127 for c in message) else "us-ascii"}, format=flowed\r\n')
+        send_command_not_response(sock, f'Content-Transfer-Encoding: {"base64" if any(ord(c) > 127 for c in message) else "7bit"}\r\n')
+        send_command_not_response(sock, f'\r\n{message}\r\n.\r\n')
         send_command(sock, 'QUIT\r\n')
 
-        for address in bcc_address:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-                sock.connect((smtp_server, smtp_port))
-                send_command(sock, 'EHLO client\r\n')
-                send_command(sock, f'MAIL FROM: <{from_address}>\r\n')
-                send_command(sock, f'RCPT TO: <{address}>\r\n')
-                send_command(sock, 'DATA\r\n')
-                send_command_not_response(sock, f'From: {from_address}\r\n')
-                send_command_not_response(sock, f'From: {from_address}\r\n')
-                send_command_not_response(sock, f'Subject: {subject}\r\nTo: {",".join(to_address)}\r\nCc: {",".join(cc_address)}\r\nBCC: {address}\r\n\r\n{message}\r\n.\r\n')
-                send_command(sock, 'QUIT\r\n')
-
-def send_email_with_attachment(smtp_server, smtp_port, from_address, to_address: tuple, cc_address: tuple, bcc_address: tuple, subject, message, attachment_file_name):
-    current_time = datetime.datetime.now().strftime( '%d/%m/%Y %H:%M:%S' )
-    try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            sock.connect((smtp_server, smtp_port))
-
-            send_command(sock, 'EHLO example.com\r\n')
-            send_command(sock, f'MAIL FROM: <{from_address}>\r\n')
-
-            for address in to_address + cc_address:
-                send_command(sock, f'RCPT TO: <{address}>\r\n')
-
-            send_command(sock, 'DATA\r\n')
-
-            # Compose the email message with attachment
-            email_message = f"Date: {current_time}\r\n"
-            email_message += f"From: {from_address}\r\nTo: {', '.join(to_address)}\r\n"
-            email_message += f"Cc: {', '.join(cc_address)}\r\n"
-            email_message += f"Subject: {subject}\r\n"
-            email_message += f"MIME-Version: 1.0\r\n"
-            email_message += f"Content-Type: multipart/mixed; boundary=boundary123\r\n\r\n"
-            email_message += f"--boundary123\r\nContent-Type: text/plain\r\n\r\n{message}\r\n\r\n"
-            type = read_file_type(attachment_file_name)
-            email_message += f"--boundary123\r\nContent-Type: {type}\r\nContent-Disposition: attachment; filename={attachment_file_name}\r\n\r\n"
-
-            #In the MIME standard, base64 encoded data should be split into multiple lines, each containing no more than 76 characters.
-            with open(attachment_file_name, 'rb') as attachment:
-                attachment_data = base64.b64encode(attachment.read()).decode()
-                formatted_attachment_data = '\r\n'.join(attachment_data[i:i+76] for i in range(0, len(attachment_data), 76))
-                email_message += formatted_attachment_data
-
-            email_message += "\r\n--boundary123--\r\n.\r\n"
-
-            # Send the email message
-            send_command(sock, email_message)
-
-            for address in bcc_address:
-                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-                    sock.connect((smtp_server, smtp_port))
-                    send_command(sock, 'EHLO example.com\r\n')
-                    send_command(sock, f'MAIL FROM: <{from_address}>\r\n')
-                    send_command(sock, f'RCPT TO: <{address}>\r\n')
-                    send_command(sock, 'DATA\r\n')
-                    email_message = f"From: {from_address}\r\nTo: {', '.join(to_address)}\r\n"
-                    email_message += f"Cc: {', '.join(cc_address)}\r\n"
-                    email_message += f"Bcc: {address}\r\n"
-                    email_message += f"Subject: {subject}\r\n"
-                    email_message += f"MIME-Version: 1.0\r\n"
-                    email_message += f"Content-Type: multipart/mixed; boundary=boundary123\r\n\r\n"
-                    email_message += f"--boundary123\r\nContent-Type: text/plain\r\n\r\n{message}\r\n\r\n"
-                    email_message += f"--boundary123\r\nContent-Type: {type}\r\nContent-Disposition: attachment; filename={attachment_file_name}\r\n\r\n"
-
-                    with open(attachment_file_name, 'rb') as attachment:
-                        attachment_data = base64.b64encode(attachment.read()).decode()
-                        formatted_attachment_data = '\r\n'.join(attachment_data[i:i+76] for i in range(0, len(attachment_data), 76))
-                        email_message += formatted_attachment_data
-
-                    email_message += "\r\n--boundary123--\r\n.\r\n"
-
-                    # Send the email message
-                    send_command_not_response(sock, email_message)
-                    send_command(sock, 'QUIT\r\n')
-
-    except Exception as e:
-        print(f"An error occurred while sending the email: {e}")
-
-def read_file_type(file_name):
+def generate_content_type_header(file_name):
     file_type = file_name.split('.')[-1]
     if file_type == 'txt':
         return 'text/plain'
@@ -144,29 +81,47 @@ def read_file_type(file_name):
         return 'application/zip'
     else:
         return 'application/octet-stream'
+
+def generate_boundary():
+    boundary = str(uuid.uuid4()).replace('-', '')
+    return f'--------------{boundary}'
     
 def send_email_with_attachment(smtp_server, smtp_port, from_address, to_address: tuple, cc_address: tuple, bcc_address: tuple, subject, message, attachment_file_name):
+    current_time = datetime.datetime.now().strftime( '%d/%m/%Y %H:%M:%S' )
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             sock.connect((smtp_server, smtp_port))
 
-            send_command_with_print(sock, 'EHLO example.com\r\n')
-            send_command_with_print(sock, f'MAIL FROM: <{from_address}>\r\n')
+            send_command(sock, 'EHLO example.com\r\n')
+            send_command(sock, f'MAIL FROM: <{from_address}>\r\n')
 
-            for address in to_address + cc_address:
-                send_command_with_print(sock, f'RCPT TO: <{address}>\r\n')
+            for address in to_address + cc_address + bcc_address:
+                send_command(sock, f'RCPT TO: <{address}>\r\n')
 
-            send_command_with_print(sock, 'DATA\r\n')
+            send_command(sock, 'DATA\r\n')
 
-            # Compose the email message with attachment
-            email_message = f"From: {from_address}\r\nTo: {', '.join(to_address)}\r\n"
-            email_message += f"Cc: {', '.join(cc_address)}\r\n"
-            email_message += f"Subject: {subject}\r\n"
-            email_message += f"MIME-Version: 1.0\r\n"
-            email_message += f"Content-Type: multipart/mixed; boundary=boundary123\r\n\r\n"
-            email_message += f"--boundary123\r\nContent-Type: text/plain\r\n\r\n{message}\r\n\r\n"
-            type = read_file_type(attachment_file_name)
-            email_message += f"--boundary123\r\nContent-Type: {type}\r\nContent-Disposition: attachment; filename={attachment_file_name}\r\n\r\n"
+            email_message = f'Content-Type: multipart/mixed; boundary="{generate_boundary()}"\r\n'
+            if '@' in from_address:
+                email_message += f"Message-ID: <{uuid.uuid4()}@{from_address.split('@')[1]}>\r\n"
+            else:
+                email_message += f"Message-ID: <{uuid.uuid4()}>\r\n"
+            email_message += f'Date: {current_time}\r\n'
+            email_message += 'MIME-Version: 1.0\r\n'
+            email_message += 'User-Agent: MailClient\r\n'
+            email_message += f'To: {', '.join(to_address)}\r\n'
+            email_message += f'CC: {', '.join(cc_address)}\r\n'
+            email_message += f'From: <{from_address}>\r\n'
+            email_message += f'Subject: {subject}\r\n'
+            email_message += '\r\nThis is a multi-part message in MIME format.\r\n'
+            email_message += f'{generate_boundary()}\r\n'
+            email_message += f'Content-Type: text/plain; charset={'UTF-8' if any(ord(c) > 127 for c in message) else 'us-ascii'}, format=flowed\r\n'
+            email_message += f'Content-Transfer-Encoding: {'base64' if any(ord(c) > 127 for c in message) else '7bit'}\r\n\r\n'
+            email_message += f'{message}\r\n\r\n'
+            
+            email_message += f'{generate_boundary()}\r\n'
+            email_message += f'Content-Type: {generate_content_type_header(attachment_file_name)}; name="{attachment_file_name}"\r\n'
+            email_message += f'Content-Disposition: attachment; filename="{attachment_file_name}"\r\n'
+            email_message += f"Content-Transfer-Encoding: base64\r\n\r\n"
 
             #In the MIME standard, base64 encoded data should be split into multiple lines, each containing no more than 76 characters.
             with open(attachment_file_name, 'rb') as attachment:
@@ -174,36 +129,11 @@ def send_email_with_attachment(smtp_server, smtp_port, from_address, to_address:
                 formatted_attachment_data = '\r\n'.join(attachment_data[i:i+76] for i in range(0, len(attachment_data), 76))
                 email_message += formatted_attachment_data
 
-            email_message += "\r\n--boundary123--\r\n.\r\n"
-
+            email_message += f'\r\n\r\n{generate_boundary()}\r\n.\r\n'
+            
             # Send the email message
-            send_command_with_print(sock, email_message)
+            send_command(sock, email_message)
 
-            for address in bcc_address:
-                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-                    sock.connect((smtp_server, smtp_port))
-                    send_command_with_print(sock, 'EHLO example.com\r\n')
-                    send_command_with_print(sock, f'MAIL FROM: <{from_address}>\r\n')
-                    send_command_with_print(sock, f'RCPT TO: <{address}>\r\n')
-                    send_command_with_print(sock, 'DATA\r\n')
-                    email_message = f"From: {from_address}\r\nTo: {', '.join(to_address)}\r\n"
-                    email_message += f"Cc: {', '.join(cc_address)}\r\n"
-                    email_message += f"Bcc: {address}\r\n"
-                    email_message += f"Subject: {subject}\r\n"
-                    email_message += f"MIME-Version: 1.0\r\n"
-                    email_message += f"Content-Type: multipart/mixed; boundary=boundary123\r\n\r\n"
-                    email_message += f"--boundary123\r\nContent-Type: text/plain\r\n\r\n{message}\r\n\r\n"
-                    email_message += f"--boundary123\r\nContent-Type: {type}\r\nContent-Disposition: attachment; filename={attachment_file_name}\r\n\r\n"
-
-                    with open(attachment_file_name, 'rb') as attachment:
-                        attachment_data = base64.b64encode(attachment.read()).decode()
-                        formatted_attachment_data = '\r\n'.join(attachment_data[i:i+76] for i in range(0, len(attachment_data), 76))
-                        email_message += formatted_attachment_data
-
-                    email_message += "\r\n--boundary123--\r\n.\r\n"
-
-                    # Send the email message
-                    send_command_with_print(sock, email_message)
 
     except Exception as e:
         print(f"An error occurred while sending the email: {e}")
