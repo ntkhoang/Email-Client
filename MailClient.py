@@ -3,6 +3,7 @@ import json
 import os
 import base64
 import datetime
+import uuid
 
 def send_command(sock, command):
     try:
