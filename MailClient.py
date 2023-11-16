@@ -266,7 +266,13 @@ if __name__ == "__main__":
                     break
                 bcc_address.append(email)
             subject = input("Subject: ")
-            message = input("Message: ")
+            print ("Message: ")
+            message = ""
+            while True:
+                line = input()
+                if line == '.':
+                    break
+                message += line + "\n"
             print("Do you want  to attach a file? (y/n)")
             choice = input("Input choice: ")
             if choice == 'y':
