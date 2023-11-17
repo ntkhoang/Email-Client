@@ -238,6 +238,23 @@ def list_emails(sock, user):
         else:
             print('No emails in this folder. Please choose another.')
 
+def get_downloaded_mail(user):
+    return {i for i in os.listdir(f'Mail/{user}')}
+
+def download_mail(sock, user):
+    if not os.path.exists(f'Mail/{user}'):
+        os.makedirs(f'Mail/{user}')
+    downloaded_mail = get_downloaded_mail(user)
+    response = send_command(sock, 'UIDL\r\n')
+    lines = response.split('\r\n')
+    for line in lines[1:-2]:
+        parts = line.split(' ')
+        if len(parts) != 2: continue
+        if parts[1] not in downloaded_mail:
+            email = retrieve_email(sock, parts[0]).replace('\r\n', '\n')
+            with open(f'Mail/{user}/{parts[1]}', 'w') as f:
+                f.write(email[email.find('\n') + 1:])
+
 if __name__ == "__main__":
     with open('config.json', 'r') as f:
         config = json.load(f)
