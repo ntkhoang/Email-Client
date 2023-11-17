@@ -88,6 +88,7 @@ def generate_boundary():
     return f'--------------{boundary}'
     
 def send_email_with_attachment(smtp_server, smtp_port, from_address, to_address: tuple, cc_address: tuple, bcc_address: tuple, subject, message, attachment_file_name):
+    boundary = generate_boundary()
     current_time = datetime.datetime.now().strftime( '%d/%m/%Y %H:%M:%S' )
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
@@ -101,7 +102,7 @@ def send_email_with_attachment(smtp_server, smtp_port, from_address, to_address:
 
             send_command(sock, 'DATA\r\n')
 
-            email_message = f'Content-Type: multipart/mixed; boundary="{generate_boundary()}"\r\n'
+            email_message = f'Content-Type: multipart/mixed; boundary="{boundary}"\r\n'
             if '@' in from_address:
                 email_message += f"Message-ID: <{uuid.uuid4()}@{from_address.split('@')[1]}>\r\n"
             else:
@@ -114,13 +115,13 @@ def send_email_with_attachment(smtp_server, smtp_port, from_address, to_address:
             email_message += f'From: <{from_address}>\r\n'
             email_message += f'Subject: {subject}\r\n'
             email_message += '\r\nThis is a multi-part message in MIME format.\r\n'
-            email_message += f'{generate_boundary()}\r\n'
+            email_message += f'{boundary}\r\n'
 
             email_message += f'Content-Type: text/plain; charset={"UTF-8" if any(ord(c) > 127 for c in message) else "us-ascii"}, format=flowed\r\n'
             email_message += f'Content-Transfer-Encoding: {"base64" if any(ord(c) > 127 for c in message) else "7bit"}\r\n\r\n'
             email_message += f'{message}\r\n\r\n'
             
-            email_message += f'{generate_boundary()}\r\n'
+            email_message += f'{boundary}\r\n'
             email_message += f'Content-Type: {generate_content_type_header(attachment_file_name)}; name="{attachment_file_name}"\r\n'
             email_message += f'Content-Disposition: attachment; filename="{attachment_file_name}"\r\n'
             email_message += f"Content-Transfer-Encoding: base64\r\n\r\n"
@@ -131,7 +132,7 @@ def send_email_with_attachment(smtp_server, smtp_port, from_address, to_address:
                 formatted_attachment_data = '\r\n'.join(attachment_data[i:i+76] for i in range(0, len(attachment_data), 76))
                 email_message += formatted_attachment_data
 
-            email_message += f'\r\n\r\n{generate_boundary()}\r\n.\r\n'
+            email_message += f'\r\n\r\n{boundary}\r\n.\r\n'
             
             # Send the email message
             send_command(sock, email_message)
