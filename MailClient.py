@@ -227,7 +227,8 @@ def list_emails(user):
     print(raw_email)
     print("-------------------------------------------------------")
     # Mark the email as seen
-    save_seen_email(user, os.path.basename(chosen_email))
+    if not check_seen_email(user, os.path.basename(chosen_email)):
+        save_seen_email(user, os.path.basename(chosen_email))
 
 def get_downloaded_mail(user):
     mails = set()
