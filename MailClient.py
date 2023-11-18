@@ -163,80 +163,71 @@ def quit(sock):
 
 def save_seen_email(user, email_id):
     # Kiểm tra xem thư mục 'User' có tồn tại không, nếu không thì tạo mới
-    if not os.path.exists('User'):
-        os.makedirs('User')
+    if not os.path.exists('SeenEmails'):
+        os.makedirs('SeenEmails')
     # Lưu email đã xem vào tệp trong thư mục 'User'
-    with open(f'User/{user}.txt', 'a') as f:
+    with open(f'SeenEmails/{user}.txt', 'a') as f:
         f.write(f'{email_id}\n')
 
 def check_seen_email(user, email_id):
     # Kiểm tra xem tệp có tồn tại không
-    if not os.path.exists(f'User/{user}.txt'):
+    if not os.path.exists(f'SeenEmails/{user}.txt'):
         return False
     # Đọc tệp để kiểm tra email đã xem
-    with open(f'User/{user}.txt', 'r') as f:
+    with open(f'SeenEmails/{user}.txt', 'r') as f:
         seen_emails = f.read().splitlines()
     return email_id in seen_emails
 
-def list_emails(sock, user):
-    # Load filters from config file
-    with open('config.json', 'r') as f:
-        config = json.load(f)
-    filters = config['filters']
+def list_emails(user):
+    # Initialize a dictionary to store the emails
+    emails_by_folder = {}
 
-    # Create a dictionary to store emails by folder
-    folders = {filter['folder']: [] for filter in filters}
-    folders['Inbox'] = []
+    # Walk through the user's mail directory
+    for root, dirs, files in os.walk(f'Mail/{user}'):
+        for dir in dirs:
+            # Initialize a list to store the emails in this folder
+            emails = []
 
-    response = send_command(sock, 'LIST\r\n')
-    lines = response.split('\n')
-    for line in lines[1:]:
-        parts = line.split()
-        if len(parts) == 2:
-            email_id = parts[0]
-            email = retrieve_email(sock, email_id)
-            from_line = next((line for line in email.split('\n') if line.lower().startswith('from: ')), None)
-            subject_line = next((line for line in email.split('\n') if line.lower().startswith('subject: ')), None)
-            from_info = from_line.split(":")[1].strip() if from_line else 'None'
-            subject_info = subject_line.split(":")[1].strip() if subject_line else 'None'
+            # Walk through this folder
+            for subroot, subdirs, subfiles in os.walk(os.path.join(root, dir)):
+                # Add each email to the list
+                for file in subfiles:
+                    emails.append(os.path.join(subroot, file))
 
-            # Apply filters
-            folder = 'Inbox' 
-            for filter in filters:
-                if filter['type'] == 'from' and from_info in filter['keywords']:
-                    folder = filter['folder']
-                elif filter['type'] == 'subject' and subject_info in filter['keywords']:
-                    folder = filter['folder']
-                elif filter['type'] == 'content' and any(keyword in email for keyword in filter['keywords']):
-                    folder = filter['folder']
-                elif filter['type'] == 'spam' and any(keyword in email for keyword in filter['keywords']):
-                    folder = filter['folder']
+            # Add the list of emails to the dictionary
+            emails_by_folder[dir] = emails
 
-            # Check if email has been seen
-            seen = check_seen_email(user, email_id)
-            seen_status = '' if seen else '(unseen)'
+    # Print the folders
+    print("Your mail folders")
+    for i, folder in enumerate(emails_by_folder.keys(), start=1):
+        print(f"{i}. {folder}")
 
-            # Add email to folder
-            folders[folder].append(f'{email_id} {seen_status} From: {from_info}, Subject: {subject_info}')
+    # Ask the user to choose a folder
+    choice = int(input("Input choice: ")) - 1
+    chosen_folder = list(emails_by_folder.keys())[choice]
 
-    # Print folders
-    print('List folder in your mail box:')
-    for i, folder in enumerate(folders.keys(), start=1):
-        print(f'{i}. {folder}')
+    # Print the emails in the chosen folder
+    for i, email_path in enumerate(emails_by_folder[chosen_folder], start=1):
+        with open(email_path, 'r') as f:
+            raw_email = f.read()
+        lines = raw_email.split('\n')
+        from_line = next((line for line in lines if line.lower().startswith('from: ')), None)
+        subject_line = next((line for line in lines if line.lower().startswith('subject: ')), None)
+        email_id = os.path.basename(email_path)
+        seen_status = '(seen)' if check_seen_email(user, email_id) else '(unseen)'
+        print(f"{i}. {seen_status} From: {from_line[6:] if from_line else 'Unknown'}, Subject: {subject_line[9:] if subject_line else 'No subject'}")
 
-    while True:
-        # Get user choice
-        choice = input('Your choice: ')
-        chosen_folder = list(folders.keys())[int(choice) - 1]
-
-        # Print emails in chosen folder or allow to choose again
-        if folders[chosen_folder]:
-            for email in folders[chosen_folder]:
-                print(email)
-                email_id = email.split()[0]
-            break
-        else:
-            print('No emails in this folder. Please choose another.')
+    # Ask the user to choose an email
+    choice = int(input("Input mail you want to read: ")) - 1
+    chosen_email = emails_by_folder[chosen_folder][choice]
+    # Print the email
+    with open(chosen_email, 'r') as f:
+        raw_email = f.read()
+    print("-------------------------Email-------------------------")
+    print(raw_email)
+    print("-------------------------------------------------------")
+    # Mark the email as seen
+    save_seen_email(user, os.path.basename(chosen_email))
 
 def get_downloaded_mail(user):
     return {i for i in os.listdir(f'Mail/{user}')}
