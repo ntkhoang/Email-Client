@@ -255,6 +255,85 @@ def download_mail(sock, user):
             with open(f'Mail/{user}/{parts[1]}', 'w') as f:
                 f.write(email[email.find('\n') + 1:])
 
+def get_downloaded_mail(user):
+    mails = set()
+    for root, dirs, files in os.walk(f'Mail/{user}'):
+        for file in files:
+            mails.add(os.path.join(root, file))
+    return mails
+
+def download_mail(sock, user):
+    if not os.path.exists(f'Mail/{user}'):
+        os.makedirs(f'Mail/{user}')
+    downloaded_mail = get_downloaded_mail(user)
+    response = send_command(sock, 'UIDL\r\n')
+    lines = response.split('\r\n')
+    for line in lines[1:-2]:
+        parts = line.split(' ')
+        if len(parts) != 2: continue
+        mail_path = f'Mail/{user}/{parts[1]}'
+        if any(mail.endswith(parts[1]) for mail in downloaded_mail):
+            continue  # Skip this email if it's already downloaded
+        email = retrieve_email(sock, parts[0]).replace('\r\n', '\n')
+        with open(mail_path, 'w') as f:
+            f.write(email[email.find('\n') + 1:])
+
+
+def make_folder_emails(sock, user):
+    # Load configuration
+    with open('config.json', 'r') as f:
+        config = json.load(f)
+
+    # Download all emails
+    download_mail(sock, user)
+
+    # Get downloaded emails
+    downloaded_mail = get_downloaded_mail(user)
+
+    # Process each email
+    for mail_path in downloaded_mail:
+        with open(mail_path, 'r') as f:
+            raw_email = f.read()
+        headers, body = raw_email.split('\n\n', 1)
+
+        moved = False  # Flag to check if the email has been moved
+
+        # Check each filter
+        for filter in config['filters']:
+            if filter['type'] == 'from':
+                from_header = next(line for line in headers.split('\n') if line.lower().startswith('from: '))
+                if any(keyword in from_header for keyword in filter['keywords']):
+                    move_to_folder(user, mail_path, filter['folder'])
+                    moved = True
+                    break
+            elif filter['type'] == 'subject':
+                subject = next(line for line in headers.split('\n') if line.lower().startswith('subject: '))
+                if any(keyword in subject for keyword in filter['keywords']):
+                    move_to_folder(user, mail_path, filter['folder'])
+                    moved = True
+                    break
+            elif filter['type'] == 'content':
+                if any(keyword in body for keyword in filter['keywords']):
+                    move_to_folder(user, mail_path, filter['folder'])
+                    moved = True
+                    break
+            elif filter['type'] == 'spam':
+                if any(keyword in body for keyword in filter['keywords']):
+                    move_to_folder(user, mail_path, filter['folder'])
+                    moved = True
+                    break
+
+        # If the email has not been moved, move it to the "Inbox" folder
+        if not moved:
+            move_to_folder(user, mail_path, 'Inbox')
+
+def move_to_folder(user, mail_path, folder):
+    if not os.path.exists(f'Mail/{user}/{folder}'):
+        os.makedirs(f'Mail/{user}/{folder}')
+    new_path = f'Mail/{user}/{folder}/{os.path.basename(mail_path)}'
+    if os.path.exists(mail_path) and not os.path.exists(new_path):
+        os.rename(mail_path, new_path)
+
 if __name__ == "__main__":
     with open('config.json', 'r') as f:
         config = json.load(f)
