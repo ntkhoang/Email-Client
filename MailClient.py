@@ -230,23 +230,6 @@ def list_emails(user):
     save_seen_email(user, os.path.basename(chosen_email))
 
 def get_downloaded_mail(user):
-    return {i for i in os.listdir(f'Mail/{user}')}
-
-def download_mail(sock, user):
-    if not os.path.exists(f'Mail/{user}'):
-        os.makedirs(f'Mail/{user}')
-    downloaded_mail = get_downloaded_mail(user)
-    response = send_command(sock, 'UIDL\r\n')
-    lines = response.split('\r\n')
-    for line in lines[1:-2]:
-        parts = line.split(' ')
-        if len(parts) != 2: continue
-        if parts[1] not in downloaded_mail:
-            email = retrieve_email(sock, parts[0]).replace('\r\n', '\n')
-            with open(f'Mail/{user}/{parts[1]}', 'w') as f:
-                f.write(email[email.find('\n') + 1:])
-
-def get_downloaded_mail(user):
     mails = set()
     for root, dirs, files in os.walk(f'Mail/{user}'):
         for file in files:
