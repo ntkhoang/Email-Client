@@ -214,7 +214,7 @@ def list_emails(user):
         from_line = next((line for line in lines if line.lower().startswith('from: ')), None)
         subject_line = next((line for line in lines if line.lower().startswith('subject: ')), None)
         email_id = os.path.basename(email_path)
-        seen_status = '(seen)' if check_seen_email(user, email_id) else '(unseen)'
+        seen_status = '' if check_seen_email(user, email_id) else '(unseen)'
         print(f"{i}. {seen_status} From: {from_line[6:] if from_line else 'Unknown'}, Subject: {subject_line[9:] if subject_line else 'No subject'}")
 
     # Ask the user to choose an email
@@ -381,11 +381,8 @@ if __name__ == "__main__":
         elif choice == '2':
             sock = connect_to_pop3_server(mail_server, pop3)
             login(sock, username, password)
-            list_emails(sock, username)
-            email_id = input("Input mail ID: ")
-            retrieve_email_with_print(sock, email_id)
-            if not check_seen_email(username, email_id) and not '-ERR Invalid message number' in retrieve_email(sock, email_id):
-                save_seen_email(username, email_id)
+            make_folder_emails(sock, username)
+            list_emails(username)
             quit(sock)
         elif choice == '3':
             break
