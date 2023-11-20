@@ -140,6 +140,67 @@ def send_email_with_attachment(smtp_server, smtp_port, from_address, to_address:
 
     except Exception as e:
         print(f"An error occurred while sending the email: {e}")
+
+def send_email_with_multiple_attachment(smtp_server, smtp_port, from_address, to_address : tuple, cc_address : tuple, bcc_address : tuple, subject, message, attachment_file_name : tuple):
+    boundary = generate_boundary()
+    current_time = datetime.datetime.now().strftime('%a, %d %b %Y %H:%M:%S %z')
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.connect((smtp_server, smtp_port))
+            
+            send_command(sock, 'EHLO localhost\r\n')
+            send_command(sock, f'MAIL FROM: <{from_address}>\r\n')
+            
+            for address in to_address:
+                send_command(sock, f'RCPT TO: <{address}>\r\n')
+            for address in cc_address:
+                send_command(sock, f'RCPT TO: <{address}>\r\n')
+            for address in bcc_address:
+                send_command(sock, f'RCPT TO: <{address}>\r\n')
+                
+            send_command(sock, 'DATA\r\n')
+            
+            email_msg = f'Content-Type: multipart/mixed; boundary="{boundary}"\r\n'
+            if '@' in from_address:
+                email_msg += f'Message-ID: <{uuid.uuid4()}@{from_address.split("@")[1]}>\r\n'
+            else:
+                email_msg += f'Message-ID: <{uuid.uuid4()}>\r\n'
+            email_msg += f'Date: {current_time}\r\n'
+            email_msg += 'MIME-Version: 1.0\r\n'
+            email_msg += 'User-Agent: MailClient\r\n'
+            email_msg += f'To: {", ".join(to_address)}\r\n'
+            email_msg += f'Cc: {", ".join(cc_address)}\r\n'
+            email_msg += f'From: <{from_address}>\r\n'
+            email_msg += f'Subject: {subject}\r\n'
+            email_msg += '\r\n'
+            email_msg += 'This is a multi-part message in MIME format.\r\n'
+            email_msg += f'{boundary}\r\n'
+            
+            email_msg += f'Content-Type: text/plain; charset={"UTF-8" if any(ord(c) > 127 for c in message) else "us-ascii"}, format=flowed\r\n'
+            email_msg += f'Content-Transfer-Encoding: 7bit\r\n'
+            email_msg += f'\r\n{message}\r\n\r\n'
+            
+            for file_name in attachment_file_name:
+                email_msg += f'{boundary}\r\n'
+                file_type = file_name.split('.')[-1]
+                if file_type == 'txt':
+                    email_msg += f'Content-Type: {generate_content_type_header(file_name)}; charset={"UTF-8" if any(ord(c) > 127 for c in message) else "us-ascii"}, name="{file_name}"\r\n'
+                else:
+                    email_msg += f'Content-Type: {generate_content_type_header(file_name)}; name="{file_name}"\r\n'
+                email_msg += f'Content-Disposition: attachment; filename="{file_name}"\r\n'
+                email_msg += f'Content-Transfer-Encoding: base64\r\n'
+                email_msg += '\r\n'
+                with open(file_name, 'rb') as attachment:  # Corrected line
+                    attachment_data = base64.b64encode(attachment.read()).decode()
+                    formatted_attachment_data = '\r\n'.join(attachment_data[i:i+76] for i in range(0, len(attachment_data), 76))
+                    email_msg += formatted_attachment_data
+                email_msg += '\r\n'
+                    
+            email_msg += f'\r\n\r\n{boundary}\r\n.\r\n'
+            send_command(sock, email_msg)
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return ""
         
 def connect_to_pop3_server(server_address, port):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
