@@ -418,10 +418,17 @@ if __name__ == "__main__":
             print("Do you want  to attach a file? (y/n)")
             choice = input("Input choice: ")
             if choice == 'y':
-                attachment_file_name = input("Input file name: ")
-                send_email_with_attachment(mail_server,smtp, username, to_address, cc_address, bcc_address, subject, message, attachment_file_name)
+                num_of_file = input("How many files do you want to attach? ")
+                if num_of_file == '1':
+                    attachment_file_name = input("Input file name: ")
+                    send_email_with_attachment(mail_server, smtp, username, to_address, cc_address, bcc_address, subject, message, attachment_file_name)
+                else:
+                    attachment_file_name = []
+                    for i in range(int(num_of_file)):
+                        attachment_file_name.append(input("Input file name: "))
+                    send_email_with_multiple_attachment(mail_server, smtp, username, to_address, cc_address, bcc_address, subject, message, attachment_file_name)
             else:
-                send_email(mail_server,smtp, username, to_address, cc_address, bcc_address, subject, message)
+                send_email(mail_server, smtp, username, to_address, cc_address, bcc_address, subject, message)
             print("Send success")
         elif choice == '2':
             sock = connect_to_pop3_server(mail_server, pop3)
