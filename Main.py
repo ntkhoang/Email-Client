@@ -3,6 +3,8 @@ from EmailRetriever.retrieve import MyEmailRetriever
 import asyncio
 import aioconsole
 
+email_retriever = MyEmailRetriever()
+sock = email_retriever.connect_to_pop3_server()
 
 async def MailClient(email_retriever):
     while True:
@@ -60,22 +62,18 @@ async def MailClient(email_retriever):
                 email_sender.send_email(to_address, cc_address, bcc_address, subject, message)
             print("Send success")
         elif choice == '2':
-            sock = email_retriever.connect_to_pop3_server()
             email_retriever.list_emails()
-            email_retriever.quit(sock)
         elif choice == '3':
+            email_retriever.quit(sock)
             break
 
 async def auto_load_mail(email_retriever):
+    email_retriever.login(sock)
     while True:
-        sock = email_retriever.connect_to_pop3_server()
-        email_retriever.login(sock)
         email_retriever.make_folder_emails(sock)
-        email_retriever.quit(sock)
         await asyncio.sleep(int(email_retriever.autoload))
 
 async def main():
-    email_retriever = MyEmailRetriever()
     await asyncio.gather(
         MailClient(email_retriever),
         auto_load_mail(email_retriever)
