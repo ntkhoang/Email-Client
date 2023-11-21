@@ -1,10 +1,10 @@
 {
     "general": 
     {
-        "username": "789",
+        "username": "MinhNhat",
         "password": "ahihi",
         "mailServer": "127.0.0.1",
-        "smtp": 2225,
+        "smtp": 2500,
         "pop3": 3335,
         "autoload": 10
     },
