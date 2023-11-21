@@ -72,7 +72,7 @@ async def auto_load_mail(email_retriever):
         email_retriever.login(sock)
         email_retriever.make_folder_emails(sock)
         email_retriever.quit(sock)
-        await asyncio.sleep(10)
+        await asyncio.sleep(int(email_retriever.autoload))
 
 async def main():
     email_retriever = MyEmailRetriever()
