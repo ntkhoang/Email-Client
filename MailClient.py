@@ -201,6 +201,13 @@ def send_email_with_multiple_attachment(smtp_server, smtp_port, from_address, to
     except Exception as e:
         print(f"An error occurred: {e}")
         return ""
+
+def check_file_size(file_name):
+    try:
+        return os.path.getsize(file_name)
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return 0
         
 def connect_to_pop3_server(server_address, port):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -415,17 +422,30 @@ if __name__ == "__main__":
                 if line == '.':
                     break
                 message += line + "\n"
-            print("Do you want  to attach a file? (y/n)")
+            print("Do you want to attach a file? (y/n)")
             choice = input("Input choice: ")
             if choice == 'y':
                 num_of_file = input("How many files do you want to attach? ")
                 if num_of_file == '1':
-                    attachment_file_name = input("Input file name: ")
-                    send_email_with_attachment(mail_server, smtp, username, to_address, cc_address, bcc_address, subject, message, attachment_file_name)
+                    check = False
+                    while check == False:
+                        attachment_file_name = input("Input file name: ")
+                        if check_file_size(attachment_file_name) <= 3e+6:
+                            send_email_with_attachment(mail_server, smtp, username, to_address, cc_address, bcc_address, subject, message, attachment_file_name)
+                            check = True
+                        else:
+                            print("File size is too large")
                 else:
                     attachment_file_name = []
                     for i in range(int(num_of_file)):
-                        attachment_file_name.append(input("Input file name: "))
+                        check = False
+                        while check == False:
+                            file_name = input("Input file name: ")
+                            if check_file_size(file_name) <= 3e+6:
+                                attachment_file_name.append(file_name)
+                                check = True
+                            else:
+                                print("File size is too large")                        
                     send_email_with_multiple_attachment(mail_server, smtp, username, to_address, cc_address, bcc_address, subject, message, attachment_file_name)
             else:
                 send_email(mail_server, smtp, username, to_address, cc_address, bcc_address, subject, message)
