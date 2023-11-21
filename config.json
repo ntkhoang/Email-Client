@@ -1,7 +1,7 @@
 {
     "general": 
     {
-        "username": "MinhNhat",
+        "username": "test@gmail.com",
         "password": "ahihi",
         "mailServer": "127.0.0.1",
         "smtp": 2500,

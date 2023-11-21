@@ -1,6 +1,7 @@
 import socket
 import json
 import os
+import asyncio
 
 class MyEmailRetriever:
     def __init__(self, config_file='config.json'):
@@ -100,46 +101,48 @@ class MyEmailRetriever:
         if os.path.exists(mail_path) and not os.path.exists(new_path):
             os.rename(mail_path, new_path)
         
-    def make_folder_emails(self, sock):
-        with open('config.json', 'r') as f:
-                config = json.load(f)
-                self.download_mail(sock)
-                downloaded_mail = self.get_downloaded_mail()
-        
-                for mail_path in downloaded_mail:
-                    with open(mail_path, 'r') as f:
-                        raw_email = f.read()
-                    headers, body = raw_email.split('\n\n', 1)
-        
-                    moved = False  
-        
-                    # Check each filter
-                    for filter in config['filters']:
-                        if filter['type'] == 'from':
-                            from_header = next(line for line in headers.split('\n') if line.lower().startswith('from: '))
-                            if any(keyword in from_header for keyword in filter['keywords']):
-                                self.move_to_folder(mail_path, filter['folder'])
-                                moved = True
-                                break
-                        elif filter['type'] == 'subject':
-                            subject = next(line for line in headers.split('\n') if line.lower().startswith('subject: '))
-                            if any(keyword in subject for keyword in filter['keywords']):
-                                self.move_to_folder(mail_path, filter['folder'])
-                                moved = True
-                                break
-                        elif filter['type'] == 'content':
-                            if any(keyword in body for keyword in filter['keywords']):
-                                self.move_to_folder(mail_path, filter['folder'])
-                                moved = True
-                                break
-                        elif filter['type'] == 'spam':
-                            if any(keyword in body for keyword in filter['keywords']):
-                                self.move_to_folder(mail_path, filter['folder'])
-                                moved = True
-                                break
-                            
-                    if not moved:
-                        self.move_to_folder(mail_path, 'Inbox')
+    async def make_folder_emails(self, sock):
+        while True:
+            with open('config.json', 'r') as f:
+                    config = json.load(f)
+                    self.download_mail(sock)
+                    downloaded_mail = self.get_downloaded_mail()
+
+                    for mail_path in downloaded_mail:
+                        with open(mail_path, 'r') as f:
+                            raw_email = f.read()
+                        headers, body = raw_email.split('\n\n', 1)
+
+                        moved = False  
+
+                        # Check each filter
+                        for filter in config['filters']:
+                            if filter['type'] == 'from':
+                                from_header = next(line for line in headers.split('\n') if line.lower().startswith('from: '))
+                                if any(keyword in from_header for keyword in filter['keywords']):
+                                    self.move_to_folder(mail_path, filter['folder'])
+                                    moved = True
+                                    break
+                            elif filter['type'] == 'subject':
+                                subject = next(line for line in headers.split('\n') if line.lower().startswith('subject: '))
+                                if any(keyword in subject for keyword in filter['keywords']):
+                                    self.move_to_folder(mail_path, filter['folder'])
+                                    moved = True
+                                    break
+                            elif filter['type'] == 'content':
+                                if any(keyword in body for keyword in filter['keywords']):
+                                    self.move_to_folder(mail_path, filter['folder'])
+                                    moved = True
+                                    break
+                            elif filter['type'] == 'spam':
+                                if any(keyword in body for keyword in filter['keywords']):
+                                    self.move_to_folder(mail_path, filter['folder'])
+                                    moved = True
+                                    break
+                                
+                        if not moved:
+                            self.move_to_folder(mail_path, 'Inbox')
+            await asyncio.sleep(int(self.autoload))
 
     def list_emails(self):
         emails_by_folder = {}
