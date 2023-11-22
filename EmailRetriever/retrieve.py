@@ -16,21 +16,21 @@ class MyEmailRetriever:
     def send_command(self, sock, command):
         try:
             sock.send(command.encode())
-            response = sock.recv(1024).decode()
-            return response
+            total_data = []
+            sock.settimeout(0.1)
+            while True:
+                try:
+                    data = sock.recv(1024)
+                    if not data:
+                        break
+                    total_data.append(data.decode())
+                except socket.timeout:
+                    break  # If no data arrives in 2 seconds, stop waiting and continue the program
+            return ''.join(total_data)
         except Exception as e:
             print(f"An error occurred: {e}")
             return ""
-        
-    def send_command_with_print(self, sock, command):
-        try:
-            sock.send(command.encode())
-            response = sock.recv(1024).decode()
-            print(response)
-            return response
-        except Exception as e:
-            print(f"An error occurred: {e}")
-            return ""
+
         
     def connect_to_pop3_server(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -38,9 +38,6 @@ class MyEmailRetriever:
         sock.recv(1024).decode()
         return sock
 
-    def retrieve_email_with_print(self, sock, email_id):
-        return self.send_command_with_print(sock, f'RETR {email_id}\r\n')
-    
     def retrieve_email(self, sock, email_id):
         return self.send_command(sock, f'RETR {email_id}\r\n')
     
@@ -175,11 +172,14 @@ class MyEmailRetriever:
         choice = int(input("Input mail you want to read: ")) - 1
         chosen_email = emails_by_folder[chosen_folder][choice]
 
-        with open(chosen_email, 'r') as f:
-            raw_email = f.read()
         print("-------------------------Email-------------------------")
-        print(raw_email)
-        print("-------------------------------------------------------")
+        with open(chosen_email, 'r') as f:
+            while True:
+                chunk = f.read(1024)
+                if not chunk:
+                    break
+                print(chunk, end='')
+        print("\n-------------------------------------------------------")
 
         if not self.check_seen_email(os.path.basename(chosen_email)):
             self.save_seen_email(os.path.basename(chosen_email))
