@@ -2,6 +2,7 @@ from EmailSender.send import MyEmailSender
 from EmailRetriever.retrieve import MyEmailRetriever
 import asyncio
 import aioconsole
+import sys
 
 email_retriever = MyEmailRetriever()
 sock = email_retriever.connect_to_pop3_server()
@@ -74,10 +75,16 @@ async def auto_load_mail(email_retriever):
         await asyncio.sleep(int(email_retriever.autoload))
 
 async def main():
-    await asyncio.gather(
-        MailClient(email_retriever),
-        auto_load_mail(email_retriever)
+    task1 = asyncio.create_task(MailClient(email_retriever))
+    task2 = asyncio.create_task(auto_load_mail(email_retriever))
+
+    done, pending = await asyncio.wait(
+        [task1, task2], 
+        return_when=asyncio.FIRST_COMPLETED  # return when the first task completes
     )
+
+    for task in pending:
+        task.cancel()  # cancel the remaining tasks
 
 asyncio.run(main())
 
