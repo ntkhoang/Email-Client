@@ -153,7 +153,7 @@ class MyEmailSender:
                         email_msg += f'Content-Disposition: attachment; filename="{file_name}"\r\n'
                         email_msg += f'Content-Transfer-Encoding: base64\r\n'
                         email_msg += '\r\n'
-                        with open(file_name, 'rb') as attachment:  # Corrected line
+                        with open(file_name, 'rb') as attachment: 
                             attachment_data = base64.b64encode(attachment.read()).decode()
                             formatted_attachment_data = '\r\n'.join(attachment_data[i:i+72] for i in range(0, len(attachment_data), 72))
                             email_msg += formatted_attachment_data

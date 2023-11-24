@@ -1,6 +1,7 @@
 import socket
 import json
 import os
+import base64
 
 class MyEmailRetriever:
     def __init__(self, config_file='config.json'):
@@ -25,7 +26,7 @@ class MyEmailRetriever:
                         break
                     total_data.append(data.decode())
                 except socket.timeout:
-                    break  # If no data arrives in 2 seconds, stop waiting and continue the program
+                    break 
             return ''.join(total_data)
         except Exception as e:
             print(f"An error occurred: {e}")
@@ -110,7 +111,6 @@ class MyEmailRetriever:
 
                     moved = False  
 
-                    # Check each filter
                     for filter in config['filters']:
                         if filter['type'] == 'from':
                             from_header = next(line for line in headers.split('\n') if line.lower().startswith('from: '))
@@ -138,6 +138,48 @@ class MyEmailRetriever:
                     if not moved:
                         self.move_to_folder(mail_path, 'Inbox')
     
+    def check_attachments(self, email):
+        first_line = email.split('\n')[0]
+        if (first_line.startswith('Content-Type: multipart/mixed;')):
+            return True
+        return False
+
+    def get_attachments(self, email):
+        boundary = email.split('\n')[0].split(';')[1].split('=')[1]
+        boundary = boundary.replace('"', '')
+        parts = email.split(boundary)
+
+        for part in parts:
+            if "Content-Disposition: attachment;" in part:
+                filename = part.split('filename="')[-1].split('"')[0]
+                content = part.split("Content-Transfer-Encoding: base64")[-1].strip()
+                with open(filename, 'wb') as f:
+                    f.write(base64.b64decode(content))
+
+    def print_formated_email(self, email):
+        count = 0
+        headers_to_print = ['Date: ', 'User-Agent: ', 'To: ', 'CC: ', 'BCC: ', 'From: ', 'Subject: ']
+        lines = email.split('\n')
+        in_body = False
+        for line in lines:
+            if in_body:
+                if line.startswith('Content-Type:') or line.startswith('Content-Transfer-Encoding:'):
+                    continue
+                if line.startswith('--------------'):
+                    count += 1
+                    if count == 2:
+                        break
+                    continue
+                print(line)
+            else:  
+                for header in headers_to_print:
+                    if line.startswith(header):
+                        print(f"{header}{line[len(header):]}")
+                        break
+                if line == 'This is a multi-part message in MIME format.':
+                    in_body = True
+        print('.')
+
 
     def list_emails(self):
         emails_by_folder = {}
@@ -171,15 +213,22 @@ class MyEmailRetriever:
 
         choice = int(input("Input mail you want to read: ")) - 1
         chosen_email = emails_by_folder[chosen_folder][choice]
+       
+        with open(chosen_email, 'r') as f:
+            raw_email = f.read()
 
         print("-------------------------Email-------------------------")
-        with open(chosen_email, 'r') as f:
-            while True:
-                chunk = f.read(1024)
-                if not chunk:
-                    break
-                print(chunk, end='')
+        self.print_formated_email(raw_email)
         print("\n-------------------------------------------------------")
+        if (self.check_attachments(raw_email)):
+            print("This email has attachments do you want to download them? (y/n)")
+            choice = input("Input choice: ")
+            if choice == 'y':
+                self.get_attachments(raw_email)
 
         if not self.check_seen_email(os.path.basename(chosen_email)):
             self.save_seen_email(os.path.basename(chosen_email))
+    
+    
+
+
