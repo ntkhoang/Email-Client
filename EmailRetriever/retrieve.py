@@ -32,7 +32,6 @@ class MyEmailRetriever:
         except Exception as e:
             print(f"An error occurred: {e}")
             return ""
-
         
     def connect_to_pop3_server(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -195,11 +194,19 @@ class MyEmailRetriever:
 
                 emails_by_folder[dir] = emails
 
+        if emails_by_folder == {}:
+            print("You have no emails")
+            return
+        
         print("Your mail folders")
         for i, folder in enumerate(emails_by_folder.keys(), start=1):
             print(f"{i}. {folder}")
-
+        
+        print('0. Exit')
         choice = int(await aioconsole.ainput("Input choice: ")) - 1
+        if choice == -1:
+            return
+        
         chosen_folder = list(emails_by_folder.keys())[choice]
 
         for i, email_path in enumerate(emails_by_folder[chosen_folder], start=1):
@@ -212,7 +219,10 @@ class MyEmailRetriever:
             seen_status = '' if self.check_seen_email(email_id) else '(unseen)'
             print(f"{i}. {seen_status} From: {from_line[6:] if from_line else 'Unknown'}, Subject: {subject_line[9:] if subject_line else 'No subject'}")
 
+        print('0. Exit')
         choice = int(await aioconsole.ainput("Input mail you want to read: ")) - 1
+        if choice == -1:
+            return
         chosen_email = emails_by_folder[chosen_folder][choice]
        
         with open(chosen_email, 'r') as f:
@@ -223,9 +233,10 @@ class MyEmailRetriever:
         print("\n-------------------------------------------------------")
         if (self.check_attachments(raw_email)):
             print("This email has attachments do you want to download them? (y/n)")
-            choice = input("Input choice: ")
+            choice = await aioconsole.ainput("Input choice: ")
             if choice == 'y':
                 self.get_attachments(raw_email)
+                print("Download success")
 
         if not self.check_seen_email(os.path.basename(chosen_email)):
             self.save_seen_email(os.path.basename(chosen_email))
