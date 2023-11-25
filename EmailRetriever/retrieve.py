@@ -2,6 +2,7 @@ import socket
 import json
 import os
 import base64
+import aioconsole
 
 class MyEmailRetriever:
     def __init__(self, config_file='config.json'):
@@ -181,7 +182,7 @@ class MyEmailRetriever:
         print('.')
 
 
-    def list_emails(self):
+    async def list_emails(self):
         emails_by_folder = {}
 
         for root, dirs, files in os.walk(f'Mail/{self.username}'):
@@ -198,7 +199,7 @@ class MyEmailRetriever:
         for i, folder in enumerate(emails_by_folder.keys(), start=1):
             print(f"{i}. {folder}")
 
-        choice = int(input("Input choice: ")) - 1
+        choice = int(await aioconsole.ainput("Input choice: ")) - 1
         chosen_folder = list(emails_by_folder.keys())[choice]
 
         for i, email_path in enumerate(emails_by_folder[chosen_folder], start=1):
@@ -211,7 +212,7 @@ class MyEmailRetriever:
             seen_status = '' if self.check_seen_email(email_id) else '(unseen)'
             print(f"{i}. {seen_status} From: {from_line[6:] if from_line else 'Unknown'}, Subject: {subject_line[9:] if subject_line else 'No subject'}")
 
-        choice = int(input("Input mail you want to read: ")) - 1
+        choice = int(await aioconsole.ainput("Input mail you want to read: ")) - 1
         chosen_email = emails_by_folder[chosen_folder][choice]
        
         with open(chosen_email, 'r') as f:
