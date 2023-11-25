@@ -163,20 +163,15 @@ class MyEmailRetriever:
         in_body = False
         for line in lines:
             if in_body:
-                if line.startswith('Content-Type:') or line.startswith('Content-Transfer-Encoding:'):
-                    continue
-                if line.startswith('--------------'):
-                    count += 1
-                    if count == 2:
-                        break
-                    continue
+                if line.startswith('--') or line == '.':
+                    break
                 print(line)
             else:  
                 for header in headers_to_print:
                     if line.startswith(header):
                         print(f"{header}{line[len(header):]}")
                         break
-                if line == 'This is a multi-part message in MIME format.':
+                if line == 'Content-Transfer-Encoding: 7bit':
                     in_body = True
         print('.')
 
