@@ -40,13 +40,6 @@ class MyEmailSender:
     def generate_boundary(self):
         boundary = str(uuid.uuid4()).replace('-', '')
         return f'--------------{boundary}'
-
-    def check_file_size(self, file_name):
-        try:
-            return os.path.getsize(file_name)
-        except Exception as e:
-            print(f"An error occurred: {e}")
-            return 0
         
     def generate_content_type_header(self, file_name):
         file_type = file_name.split('.')[-1]
