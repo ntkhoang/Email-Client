@@ -1,19 +1,19 @@
 import tkinter as tk
 from tkinter import messagebox
 from tkinter import filedialog
+from tkinter import scrolledtext
 from EmailSender.send import MyEmailSender
 from EmailRetriever.retrieve import MyEmailRetriever
 import json
 import os
 
-
 class EmailApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Mail Client")
-
-        self.email_retriever = MyEmailRetriever()
-        self.sock = self.email_retriever.connect_to_pop3_server()
+        
+        email_retriever = MyEmailRetriever()
+        self.sock = email_retriever.connect_to_pop3_server()
 
         self.frame = tk.Frame(root)
         self.frame.pack(padx=100, pady=100)
@@ -144,8 +144,125 @@ class EmailApp:
     def view_email(self):
         self.view_window = tk.Toplevel(self.root)
         self.view_window.title("View Email")
-
-        #continue here
+        
+        folders = ["Inbox", "Project", "Important", "Work", "Spam"]
+        for folder in folders:
+            folder_button = tk.Button(self.view_window, text=folder, command=lambda folder=folder: self.view_folder(folder))
+            folder_button.pack(padx=10, pady=10)
+            
+    def view_folder(self, folder):
+        self.folder_window = tk.Toplevel(self.view_window)
+        self.folder_window.title(folder)
+        
+        self.emails = []
+        for root, dirs, files in os.walk(f'Mail/{self.email_retriever.username}/{folder}'):
+            for file in files:
+                self.emails.append(os.path.join(root, file))
+        
+        self.emails.sort(key=lambda email: os.path.getmtime(email))
+        
+        self.email_buttons = []
+        for email in self.emails:
+            from_address = ''
+            subject = ''
+            with open(email, 'r') as f:
+                for line in f.read().splitlines():
+                    if line.startswith('From: '):
+                        from_address = line.split(': ')[1]
+                    elif line.startswith('Subject: '):
+                        subject = line.split(': ')[1]
+            email_button = tk.Button(self.folder_window, text=f'From: <{from_address}>, Subject: {subject}', command=lambda email=email: self.view_email_action(email))
+            email_button.pack(padx=10, pady=10)
+            self.email_buttons.append(email_button)
+        
+    def view_email_action(self, email):
+        self.email_window = tk.Toplevel(self.folder_window)
+        self.email_window.title(email)
+        
+        with open(email, 'r') as f:
+            raw_email_content = f.read()
+        
+        email_content = raw_email_content
+        email_content = self.print_formated_email(email_content)
+        
+        self.email_text = scrolledtext.ScrolledText(self.email_window, width=100, height=30)
+        self.email_text.pack(padx=10, pady=10)
+        self.email_text.insert(tk.INSERT, email_content)
+        
+        attachment_name = self.get_attachments_name(raw_email_content)
+        
+        line = raw_email_content.splitlines()[0]
+        if line.startswith('Content-Type: multipart/mixed;'):
+            self.email_text.insert(tk.INSERT, '\n\nAttachments:\n')
+            for attachment in attachment_name:
+                self.email_text.insert(tk.INSERT, f'{attachment}\n')
+            download_attachment_button = tk.Button(self.email_window, text="Download Attachment", command=lambda email=email: self.download_attachment(email))
+            download_attachment_button.pack(padx=10, pady=10)
+    
+    def get_attachments_name(self, email):
+        names = []
+        lines = email.split('\n')
+        for line in lines:
+            if line.startswith('Content-Disposition: attachment;'):
+                attachment = line.split('=')[1]
+                filename = os.path.basename(attachment.strip())
+                filename = filename.replace('"', '')
+                names.append(filename)
+        return names
+            
+            
+    def print_formated_email(self, email):
+        headers_to_print = ['Date: ', 'User-Agent: ', 'To: ', 'CC: ', 'BCC: ', 'From: ', 'Subject: ']
+        lines = email.split('\n')
+        in_body = False
+        email_content = ''
+        for line in lines:
+            if in_body:
+                if line.startswith('--') or line == '.':
+                    break
+                email_content += line + '\n'
+            else:  
+                for header in headers_to_print:
+                    if line.startswith(header):
+                        email_content += f"{header}{line[len(header):]}\n"
+                        break
+                if line == 'Content-Transfer-Encoding: 7bit':
+                    in_body = True
+        return email_content
+        
+    def download_attachment(self, email):
+        self.attachment_window = tk.Toplevel(self.email_window)
+        self.attachment_window.title("Download Attachment")
+        
+        with open(email, 'r') as f:
+            email_content = f.read()
+        
+        self.attachment_buttons = []
+        for line in email_content.splitlines():
+            if line.startswith('Attachment: '):
+                attachment = line.split(': ')[1]
+                attachment_button = tk.Button(self.attachment_window, text=attachment, command=lambda attachment=attachment: self.download_attachment_action(attachment))
+                attachment_button.pack(padx=10, pady=10)
+                self.attachment_buttons.append(attachment_button)
+                
+    def download_attachment_action(self, attachment):
+        attachment_path = f'Mail/{self.email_retriever.username}/Attachments/{attachment}'
+        if os.path.exists(attachment_path):
+            messagebox.showinfo("Success", f'Attachment {attachment} already exists.')
+            return
+        
+        with open('config.json', 'r') as f:
+            config = json.load(f)
+        attachment_path = f'Mail/{self.email_retriever.username}/Attachments/{attachment}'
+        email_retriever = MyEmailRetriever()
+        email_retriever.username = config['general']['username']
+        email_retriever.password = config['general']['password']
+        sock = email_retriever.connect_to_pop3_server()
+        email_retriever.login(sock)
+        email_retriever.download_attachment(sock, attachment, attachment_path)
+        email_retriever.quit(sock)
+        messagebox.showinfo("Success", f'Attachment {attachment} downloaded successfully.')
+    
 
     def run(self):
         self.root.mainloop()
