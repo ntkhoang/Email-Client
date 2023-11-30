@@ -8,27 +8,27 @@ import os
 import threading
 import time
 
-
-
 class EmailApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Mail Client")
+        self.root.minsize(880, 750)
+        self.root.maxsize(880, 750)
 
         self.email_retriever = MyEmailRetriever()
         self.sock = self.email_retriever.connect_to_pop3_server()
 
         self.frame = tk.Frame(root)
-        self.frame.pack(padx=100, pady=100)
+        self.frame.place(relx=0.5, rely=0.5, anchor='c')
         
-        username_label = tk.Label(self.frame, text="Username: ")
-        username_label.grid(row=0, column=0, padx=10, pady=10)
+        self.username_label = tk.Label(self.frame, text="Username: ")
+        self.username_label.grid(row=0, column=0, padx=10, pady=10)
         
         self.username = tk.Entry(self.frame, width=50)
         self.username.grid(row=0, column=1, padx=10, pady=10)
         
-        password_label = tk.Label(self.frame, text="Password: ")
-        password_label.grid(row=1, column=0, padx=10, pady=10)
+        self.password_label = tk.Label(self.frame, text="Password: ")
+        self.password_label.grid(row=1, column=0, padx=10, pady=10)
         
         self.password = tk.Entry(self.frame, width=50)
         self.password.grid(row=1, column=1, padx=10, pady=10)
@@ -47,69 +47,109 @@ class EmailApp:
         with open('config.json', 'r') as f:
             config = json.load(f)
         if username == config['general']['username'] and password == config['general']['password']:
-            self.login_button.grid_remove()
-            threading.Thread(target=self.auto_load_mail, daemon=True).start()
-            self.send_email_button = tk.Button(self.frame, text="Send Email", command=self.send_email)
-            self.send_email_button.grid(row=3, column=0, padx=20, pady=20)  
-            self.view_email_button = tk.Button(self.frame, text="View Email", command=self.view_email)
-            self.view_email_button.grid(row=3, column=1, padx=20, pady=20, sticky='e')
-            self.logout_button = tk.Button(self.frame, text="Log out", command=self.logout)
-            self.logout_button.grid(row=2, column=0, columnspan=2, padx=10, pady=10)
+            self.main_menu()
     
+    def main_menu(self):
+        self.username_label.grid_forget()
+        self.username.grid_forget()
+        self.password_label.grid_forget()
+        self.password.grid_forget()
+        self.login_button.grid_remove()
+        threading.Thread(target=self.auto_load_mail, daemon=True).start()
+        self.send_email_button = tk.Button(self.frame, text="Send Email", command=self.send_email)
+        self.send_email_button.grid(row=2, column=0, padx=20, pady=20)  
+        self.view_email_button = tk.Button(self.frame, text="View Email", command=self.view_email)
+        self.view_email_button.grid(row=2, column=1, padx=20, pady=20, sticky='e')
+        self.logout_button = tk.Button(self.frame, text="Log out", command=self.logout)
+        self.logout_button.grid(row=3, column=0, columnspan=2, padx=10, pady=10)
+        
     def logout(self):
         self.email_retriever.quit(self.sock)
-        self.username.delete(0, tk.END)
-        self.password.delete(0, tk.END)
+        self.username_label = tk.Label(self.frame, text="Username: ")
+        self.username_label.grid(row=0, column=0, padx=10, pady=10)
+        
+        self.username = tk.Entry(self.frame, width=50)
+        self.username.grid(row=0, column=1, padx=10, pady=10)
+        
+        self.password_label = tk.Label(self.frame, text="Password: ")
+        self.password_label.grid(row=1, column=0, padx=10, pady=10)
+        
+        self.password = tk.Entry(self.frame, width=50)
+        self.password.grid(row=1, column=1, padx=10, pady=10)
+        
+        self.login_button = tk.Button(self.frame, text="Login", command=self.login)
+        self.login_button.grid(row=2, column=0, columnspan=2, padx=10, pady=10)
+
         self.login_button.grid(row=2, column=0, columnspan=2, padx=10, pady=10)
         self.send_email_button.grid_remove()
         self.view_email_button.grid_remove()
         self.logout_button.grid_remove()
+        
+    def back_to_main_menu_from_send_email(self):
+        self.to_entry.grid_forget()
+        self.cc_entry.grid_forget()
+        self.bcc_entry.grid_forget()
+        self.subject_entry.grid_forget()
+        self.message_text.grid_forget()
+        self.attachment_entry.grid_forget()
+        self.attachment_button.grid_forget()
+        self.send_button.grid_remove()
+        self.back_button.grid_remove()
+        self.to_label.grid_forget()
+        self.cc_label.grid_forget()
+        self.bcc_label.grid_forget()
+        self.subject_label.grid_forget()
+        self.message_label.grid_forget()
+        self.attachment_label.grid_forget()
+        self.main_menu()
 
     def send_email(self):
-        self.send_email_window = tk.Toplevel(self.root)
-        self.send_email_window.title("Send Email")
+        self.delete_main_menu_widgets()
+                
+        self.to_label = tk.Label(self.frame, text="To:")
+        self.to_label.grid(row=0, column=0, padx=10, pady=10)
         
-        to_label = tk.Label(self.send_email_window, text="To:")
-        to_label.grid(row=0, column=0, padx=10, pady=10)
-        
-        self.to_entry = tk.Entry(self.send_email_window, width=50)
+        self.to_entry = tk.Entry(self.frame, width=50)
         self.to_entry.grid(row=0, column=1, padx=10, pady=10)
         
-        cc_label = tk.Label(self.send_email_window, text="CC:")
-        cc_label.grid(row=1, column=0, padx=10, pady=10)
+        self.cc_label = tk.Label(self.frame, text="CC:")
+        self.cc_label.grid(row=1, column=0, padx=10, pady=10)
 
-        self.cc_entry = tk.Entry(self.send_email_window, width=50)
+        self.cc_entry = tk.Entry(self.frame, width=50)
         self.cc_entry.grid(row=1, column=1, padx=10, pady=10)
         
-        bcc_label = tk.Label(self.send_email_window, text="BCC:")
-        bcc_label.grid(row=2, column=0, padx=10, pady=10)
+        self.bcc_label = tk.Label(self.frame, text="BCC:")
+        self.bcc_label.grid(row=2, column=0, padx=10, pady=10)
 
-        self.bcc_entry = tk.Entry(self.send_email_window, width=50)
+        self.bcc_entry = tk.Entry(self.frame, width=50)
         self.bcc_entry.grid(row=2, column=1, padx=10, pady=10)
         
-        subject_label = tk.Label(self.send_email_window, text="Subject:")
-        subject_label.grid(row=3, column=0, padx=10, pady=10)
+        self.subject_label = tk.Label(self.frame, text="Subject:")
+        self.subject_label.grid(row=3, column=0, padx=10, pady=10)
 
-        self.subject_entry = tk.Entry(self.send_email_window, width=50)
+        self.subject_entry = tk.Entry(self.frame, width=50)
         self.subject_entry.grid(row=3, column=1, padx=10, pady=10)
 
-        message_label = tk.Label(self.send_email_window, text="Message:")
-        message_label.grid(row=4, column=0, padx=10, pady=10)
+        self.message_label = tk.Label(self.frame, text="Message:")
+        self.message_label.grid(row=4, column=0, padx=10, pady=10)
 
-        self.message_text = tk.Text(self.send_email_window, height=10, width=50)
+        self.message_text = tk.Text(self.frame, height=10, width=50)
         self.message_text.grid(row=4, column=1, padx=10, pady=10)
         
-        attachment_label = tk.Label(self.send_email_window, text="Attachment: ")
-        attachment_label.grid(row=5, column=0, padx=10, pady=10)
+        self.attachment_label = tk.Label(self.frame, text="Attachment: ")
+        self.attachment_label.grid(row=5, column=0, padx=10, pady=10)
 
-        self.attachment_entry = tk.Entry(self.send_email_window, width=50)
+        self.attachment_entry = tk.Entry(self.frame, width=50)
         self.attachment_entry.grid(row=5, column=1, padx=10, pady=10)
 
-        self.attachment_button = tk.Button(self.send_email_window, text="Browse", command=self.browse_file)
+        self.attachment_button = tk.Button(self.frame, text="Browse", command=self.browse_file)
         self.attachment_button.grid(row=5, column=2, padx=10, pady=10)
                         
-        send_button = tk.Button(self.send_email_window, text="Send", command=self.send_email_action)
-        send_button.grid(row=6, column=0, columnspan=3, padx=10, pady=20)
+        self.send_button = tk.Button(self.frame, text="Send", command=self.send_email_action)
+        self.send_button.grid(row=6, column=0, columnspan=3, padx=10, pady=20)
+        
+        self.back_button = tk.Button(self.frame, text="Back", command=self.back_to_main_menu_from_send_email)
+        self.back_button.grid(row=7, column=0, columnspan=3, padx=10, pady=20)
         
     def browse_file(self):
         filenames = filedialog.askopenfilenames()
@@ -144,15 +184,20 @@ class EmailApp:
             messagebox.showerror("Error", f'An error occurred: {e}')
             
         self.send_email_window.destroy()
-
+    
+    def delete_main_menu_widgets(self):
+        self.send_email_button.grid_remove()
+        self.view_email_button.grid_remove()
+        self.logout_button.grid_remove()
+        
     def view_email(self):
-        self.view_window = tk.Toplevel(self.root)
-        self.view_window.title("View Email")
-
-        tk.Label(self.view_window, text="Your emails folder:").grid(row=0, column=0, padx=10, pady=10)
-
+        self.delete_main_menu_widgets()
+        
+        self.label = tk.Label(self.frame, text="Your emails folder:")
+        self.label.grid(row=0, column=0, padx=10, pady=10, sticky='w')
+        
         # Create a listbox to display the folders
-        self.folder_listbox = tk.Listbox(self.view_window)
+        self.folder_listbox = tk.Listbox(self.frame)
         self.folder_listbox.grid(row=1, column=0, padx=10, pady=10)
 
         # Populate the listbox with folders
@@ -160,21 +205,26 @@ class EmailApp:
             self.folder_listbox.insert(tk.END, folder)
 
         # Create a button to list the emails in the selected folder
-        self.list_emails_button = tk.Button(self.view_window, text="List Emails", command=self.list_emails)
+        self.list_emails_button = tk.Button(self.frame, text="List Emails", command=self.list_emails)
         self.list_emails_button.grid(row=2, column=0, padx=10, pady=10)
+        
+        self.back_button = tk.Button(self.frame, text="Back", command=self.back_to_main_menu_from_view_email)
+        self.back_button.grid(row=3, column=0, padx=10, pady=10)
+        
+    def back_to_main_menu_from_view_email(self):
+        self.label.grid_forget()
+        self.folder_listbox.grid_forget()
+        self.list_emails_button.grid_forget()
+        self.back_button.grid_forget()
+        self.main_menu()
 
     def list_emails(self):
         # Get the selected folder
         selected_folder = self.folder_listbox.get(self.folder_listbox.curselection())
 
-        # Create a new window to display the emails
-        email_window = tk.Toplevel(self.view_window)
-        email_window.geometry("400x300")
-        email_window.title(selected_folder)
-
         # Create a listbox to display the emails
-        self.email_listbox = tk.Listbox(email_window)
-        self.email_listbox.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
+        self.email_listbox = tk.Listbox(self.frame, width=50)
+        self.email_listbox.grid(row=1, column=1, padx=10, pady=10, sticky='nsew')
 
         # Create a dictionary to store the email files
         self.email_files = {}
@@ -196,9 +246,22 @@ class EmailApp:
                     self.email_listbox.insert(tk.END, email_item)
                     self.email_files[email_item] = email_file
 
-        self.open_email_button = tk.Button(email_window, text="Open Email", command=lambda:self.open_email(selected_folder))
-        self.open_email_button.pack()
-
+        self.open_email_button = tk.Button(self.frame, text="Open Email", command=lambda: self.open_email(selected_folder))
+        self.open_email_button.grid(row=2, column=1, padx=10, pady=10)
+        
+        self.back_button.grid_remove()
+        self.back_button = tk.Button(self.frame, text="Back", command=self.back_to_main_menu_from_list_emails)
+        self.back_button.grid(row=3, column=1, padx=10, pady=10)
+        
+    def back_to_main_menu_from_list_emails(self):
+        self.folder_listbox.grid_forget()
+        self.label.grid_forget()
+        self.email_listbox.grid_forget()
+        self.open_email_button.grid_forget()
+        self.back_button.grid_forget()
+        self.list_emails_button.grid_forget()
+        self.main_menu()
+        
     def open_email(self, selected_folder):
         # Get the selected email item
         selected_email_item = self.email_listbox.get(self.email_listbox.curselection())
@@ -209,7 +272,7 @@ class EmailApp:
             self.email_retriever.save_seen_email(email_file)
 
         # Open the email in a new window
-        email_window = tk.Toplevel(self.view_window)
+        email_window = tk.Toplevel(self.frame)
         email_window.geometry("500x500")
         email_window.title(email_file)
 
