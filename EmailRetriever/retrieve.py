@@ -74,6 +74,12 @@ class MyEmailRetriever:
         if not os.path.exists(f'Mail/{self.username}'):
             os.makedirs(f'Mail/{self.username}')
 
+        filters = self.config['filters']
+        folders = [filter['folder'] for filter in filters]
+        for folder in folders:
+            if not os.path.exists(f'Mail/{self.username}/{folder}'):
+                os.makedirs(f'Mail/{self.username}/{folder}')
+
         downloaded_mail = self.get_downloaded_mail()
         response = self.send_command(sock, 'UIDL\r\n')
         lines = response.split('\r\n')

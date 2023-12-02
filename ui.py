@@ -12,11 +12,12 @@ class EmailApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Mail Client")
-        self.root.minsize(880, 750)
-        self.root.maxsize(880, 750)
+        self.root.minsize(800, 600)
+        self.root.maxsize(1080, 720)
 
         self.email_retriever = MyEmailRetriever()
         self.sock = self.email_retriever.connect_to_pop3_server()
+        self.stop_thread = False
 
         self.frame = tk.Frame(root)
         self.frame.place(relx=0.5, rely=0.5, anchor='c')
@@ -157,6 +158,7 @@ class EmailApp:
         self.attachment_entry.insert(0, ', '.join(filenames))  # insert all filenames into the entry
         
     def send_email_action(self):
+        self.stop_thread = True
         to_address = self.to_entry.get().split(',')
         cc_address = self.cc_entry.get().split(',')
         bcc_address = self.bcc_entry.get().split(',')
@@ -183,7 +185,7 @@ class EmailApp:
         except Exception as e:
             messagebox.showerror("Error", f'An error occurred: {e}')
             
-        self.send_email_window.destroy()
+        self.stop_thread = False
     
     def delete_main_menu_widgets(self):
         self.send_email_button.grid_remove()
@@ -306,8 +308,12 @@ class EmailApp:
 
     def auto_load_mail(self):
         while True:
-            self.email_retriever.make_folder_emails(self.sock)
-            time.sleep(int(self.email_retriever.autoload))
+            if not self.stop_thread:
+                self.email_retriever.quit(self.sock)
+                self.sock = self.email_retriever.connect_to_pop3_server()
+                self.email_retriever.login(self.sock)
+                self.email_retriever.make_folder_emails(self.sock)
+                time.sleep(int(self.email_retriever.autoload))
 
 
     def run(self):
