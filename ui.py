@@ -18,6 +18,8 @@ class EmailApp:
         self.email_retriever = MyEmailRetriever()
         self.sock = self.email_retriever.connect_to_pop3_server()
         self.stop_thread = False
+        threading.Thread(target=self.auto_load_mail, daemon=True).start()
+
 
         self.frame = tk.Frame(root)
         self.frame.place(relx=0.5, rely=0.5, anchor='c')
@@ -56,7 +58,6 @@ class EmailApp:
         self.password_label.grid_forget()
         self.password.grid_forget()
         self.login_button.grid_remove()
-        threading.Thread(target=self.auto_load_mail, daemon=True).start()
         self.send_email_button = tk.Button(self.frame, text="Send Email", command=self.send_email)
         self.send_email_button.grid(row=2, column=0, padx=20, pady=20)  
         self.view_email_button = tk.Button(self.frame, text="View Email", command=self.view_email)
@@ -272,6 +273,12 @@ class EmailApp:
         email_file = self.email_files[selected_email_item]
         if not self.email_retriever.check_seen_email(email_file):
             self.email_retriever.save_seen_email(email_file)
+
+        seen_email_item = selected_email_item.replace('(unseen) ', '')
+        selected_index = self.email_listbox.curselection()
+        self.email_listbox.delete(selected_index)
+        self.email_listbox.insert(selected_index, seen_email_item)
+        self.email_files[seen_email_item] = self.email_files.pop(selected_email_item)
 
         # Open the email in a new window
         email_window = tk.Toplevel(self.frame)

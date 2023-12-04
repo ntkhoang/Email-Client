@@ -113,6 +113,7 @@ class MyEmailRetriever:
                 for mail_path in downloaded_mail:
                     with open(mail_path, 'r') as f:
                         raw_email = f.read()
+                    raw_email = self.formated_email(raw_email)
                     headers, body = raw_email.split('\n\n', 1)
                     moved = False  
 
