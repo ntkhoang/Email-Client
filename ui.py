@@ -227,7 +227,9 @@ class EmailApp:
 
         # Create a listbox to display the emails
         self.email_listbox = tk.Listbox(self.frame, width=50)
+        # Use grid to show the widgets
         self.email_listbox.grid(row=1, column=1, padx=10, pady=10, sticky='nsew')
+ 
 
         # Create a dictionary to store the email files
         self.email_files = {}
@@ -256,11 +258,12 @@ class EmailApp:
         self.back_button = tk.Button(self.frame, text="Back", command=self.back_to_main_menu_from_list_emails)
         self.back_button.grid(row=3, column=1, padx=10, pady=10)
         
+        
     def back_to_main_menu_from_list_emails(self):
         self.folder_listbox.grid_forget()
         self.label.grid_forget()
         self.email_listbox.grid_forget()
-        self.open_email_button.grid_forget()
+        # self.open_email_button.grid_forget()
         self.back_button.grid_forget()
         self.list_emails_button.grid_forget()
         self.main_menu()
