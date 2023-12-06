@@ -30,6 +30,8 @@ class EmailApp:
         self.back_button_from_list = None
         
         self.open_email_button = None
+
+        self.selected_folder = None
         
         self.login_menu()
         
@@ -69,7 +71,7 @@ class EmailApp:
         self.password_label.grid_forget()
         self.password.grid_forget()
         self.login_button.grid_remove()
-    
+
     def main_menu(self):
         self.send_email_button = tk.Button(self.frame, text="Send Email", command=self.send_email)
         self.send_email_button.grid(row=2, column=0, padx=20, pady=20)  
@@ -254,7 +256,7 @@ class EmailApp:
         self.list_emails_button_clicked = True
         self.back_button_from_view.grid_remove()
         # Get the selected folder
-        selected_folder = self.folder_listbox.get(self.folder_listbox.curselection())
+        self.selected_folder = self.folder_listbox.get(self.folder_listbox.curselection())
 
         if self.email_listbox is None or self.back_button_from_list_clicked == True:
             self.email_listbox = tk.Listbox(self.frame, width=50)
@@ -267,8 +269,8 @@ class EmailApp:
         # Create a dictionary to store the email files
         self.email_files = {}
         # Populate the listbox with emails
-        for email_file in os.listdir(f'Mail/{self.username.get()}/{selected_folder}'):
-            with open(f'Mail/{self.username.get()}/{selected_folder}/{email_file}', 'r') as f:
+        for email_file in os.listdir(f'Mail/{self.username.get()}/{self.selected_folder}'):
+            with open(f'Mail/{self.username.get()}/{self.selected_folder}/{email_file}', 'r') as f:
                 lines = f.readlines()
                 from_line = [line for line in lines if line.startswith("From: ")]
                 subject_line = [line for line in lines if line.startswith("Subject: ")]
@@ -286,7 +288,7 @@ class EmailApp:
         self.email_listbox.update_idletasks()
 
         if self.open_email_button is None or self.back_button_from_list_clicked == True:
-            self.open_email_button = tk.Button(self.frame, text="Open Email", command=lambda: self.open_email(selected_folder))
+            self.open_email_button = tk.Button(self.frame, text="Open Email", command=self.open_email)
             self.open_email_button.grid(row=2, column=1, padx=10, pady=10)
         
         if self.back_button_from_list is None or self.back_button_from_list_clicked == True:
@@ -313,7 +315,7 @@ class EmailApp:
         # Call main_menu to create the main menu widgets
         self.main_menu()
    
-    def open_email(self, selected_folder):
+    def open_email(self):
         # Get the selected email item
         selected_email_item = self.email_listbox.get(self.email_listbox.curselection())
 
@@ -339,7 +341,7 @@ class EmailApp:
 
         # Display the email content in a Text widget for better formatting and scrolling
         text_widget = tk.Text(email_window, wrap=tk.WORD, yscrollcommand=scrollbar.set, font=("Consolas",16))
-        with open(f'Mail/{self.username.get()}/{selected_folder}/{email_file}', 'r') as f:
+        with open(f'Mail/{self.username.get()}/{self.selected_folder}/{email_file}', 'r') as f:
             email_content = f.read()
         text_widget.insert(tk.END, self.email_retriever.formated_email(email_content))
         text_widget.configure(state="disabled")
