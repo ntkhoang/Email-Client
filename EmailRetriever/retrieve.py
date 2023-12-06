@@ -79,6 +79,9 @@ class MyEmailRetriever:
         for folder in folders:
             if not os.path.exists(f'Mail/{self.username}/{folder}'):
                 os.makedirs(f'Mail/{self.username}/{folder}')
+        
+        if not os.path.exists(f'Mail/{self.username}/Inbox'):
+            os.makedirs(f'Mail/{self.username}/Inbox')
 
         downloaded_mail = self.get_downloaded_mail()
         response = self.send_command(sock, 'UIDL\r\n')
