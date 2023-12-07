@@ -153,7 +153,7 @@ class EmailApp:
         self.send_button.grid(row=6, column=0, columnspan=3, padx=10, pady=20)
         
         # Create the back_button
-        self.back_button_from_send = tk.Button(self.frame, text="Back_send")
+        self.back_button_from_send = tk.Button(self.frame, text="Back")
 
         # Set the command attribute
         self.back_button_from_send["command"] = lambda: self.back_to_main_menu_from_send_email()
